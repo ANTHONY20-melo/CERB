@@ -80,6 +80,33 @@ function distribuirDados(rows) {
     });
     save();
 }
+// ... (mantenha todas as funções anteriores: identificarNucleo, render, salvar, etc) ...
+
+// FUNÇÕES DE MENU MOBILE
+function toggleSidebar() {
+    const sidebar = document.getElementById('mainSidebar');
+    sidebar.classList.toggle('active');
+}
+
+// Fecha a sidebar se estiver no mobile (ajuda na navegação)
+function maybeCloseSidebar() {
+    if (window.innerWidth <= 768) {
+        toggleSidebar();
+    }
+}
+
+// Modifique a sua função scrollToNucleo para fechar a sidebar após clicar
+function scrollToNucleo(nucleo) {
+    maybeCloseSidebar();
+    const id = "row-" + nucleo.replace(/\s/g, '');
+    const el = document.getElementById(id);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// Ajuste na função render() para garantir que as tabelas permitam scroll
+// Certifique-se de que o HTML gerado para as TRs de núcleo usem o ID correto row-ID
 
 function render() {
     const pcBody = document.getElementById('pcTableBody');

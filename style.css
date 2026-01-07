@@ -64,3 +64,56 @@ td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 .modal-content { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; }
 .btn-action { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 16px; margin-right: 8px; }
 .btn-action:hover { color: var(--accent); }
+/* ... (mantenha as variáveis e estilos base anteriores) ... */
+
+:root { 
+    --primary: #0f172a; 
+    --accent: #2563eb; 
+    --bg: #f8fafc; 
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+}
+
+body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; color: var(--text-main); }
+
+/* SIDEBAR E RESPONSIVIDADE */
+.sidebar { width: 250px; background: var(--primary); height: 100vh; position: fixed; color: white; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; z-index: 1001; transition: transform 0.3s ease; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+.mobile-menu-toggle { display: none; position: fixed; top: 15px; left: 15px; background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; z-index: 999; cursor: pointer; }
+.close-sidebar { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+
+/* REGRAS PARA CELULAR (Telas menores que 768px) */
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); width: 280px; }
+    .sidebar.active { transform: translateX(0); }
+    .sidebar.active + .sidebar-overlay { display: block; }
+    
+    .mobile-menu-toggle { display: block; }
+    .close-sidebar { display: block; }
+    .logo { justify-content: space-between; }
+
+    .main-content { margin-left: 0; width: 100%; padding: 70px 15px 20px 15px; }
+    
+    .dashboard-grid { grid-template-columns: 1fr; } /* Dashboard vira lista */
+    
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; } /* Scroll lateral na tabela */
+    
+    .modal-content { width: 90%; padding: 20px; }
+}
+
+/* ESTILOS DE TABELA E DASHBOARD (Mantenha o que já tínhamos) */
+.main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); transition: 0.3s; }
+.logo { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+nav { overflow-y: auto; flex-grow: 1; }
+.nav-item, .nav-item-sub { cursor: pointer; border: none; text-align: left; transition: 0.2s; }
+.nav-item { width: 100%; padding: 12px; border-radius: 8px; color: #cbd5e1; background: transparent; margin-bottom: 5px; }
+.nav-item.active { background: var(--accent); color: white; }
+.nav-item-sub { width: 100%; padding: 8px 12px 8px 25px; color: #94a3b8; background: transparent; font-size: 12px; }
+
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+.card-nucleo { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
+.table-container { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+table { width: 100%; border-collapse: collapse; min-width: 600px; } /* Garante que a tabela não esmague no celular */
+th, td { padding: 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+
+/* ... (Mantenha as cores das classes .SALVADOR, .BARREIRAS, etc., conforme o arquivo anterior) ... */

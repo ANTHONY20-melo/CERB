@@ -11,15 +11,23 @@
 </head>
 <body>
 
-<div class="sidebar">
-    <div class="logo"><i class="fas fa-laptop-medical"></i> <span>TI SYSTEM</span></div>
+<button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="mainSidebar">
+    <div class="logo">
+        <i class="fas fa-laptop-medical"></i> <span>TI SYSTEM</span>
+        <button class="close-sidebar" onclick="toggleSidebar()">&times;</button>
+    </div>
     <nav id="sidebar-nav">
-        <button class="nav-item active" onclick="showTab('pcs')"><i class="fas fa-desktop"></i> Computadores</button>
-        <button class="nav-item" onclick="showTab('printers')"><i class="fas fa-print"></i> Impressoras</button>
+        <button class="nav-item active" onclick="showTab('pcs'); maybeCloseSidebar()"><i class="fas fa-desktop"></i> Computadores</button>
+        <button class="nav-item" onclick="showTab('printers'); maybeCloseSidebar()"><i class="fas fa-print"></i> Impressoras</button>
         
         <div class="menu-label">NÚCLEOS</div>
-        <div id="nucleos-menu">
-            </div>
+        <div id="nucleos-menu"></div>
 
         <hr style="border: 0.5px solid #334155; margin: 20px 0;">
         
@@ -34,7 +42,7 @@
     <header>
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar em todo o inventário...">
+            <input type="text" id="searchInput" placeholder="Pesquisar...">
         </div>
     </header>
 
@@ -42,35 +50,39 @@
 
     <div id="tab-pcs" class="tab-content">
         <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 15%">PC</th>
-                        <th style="width: 20%">Usuário</th>
-                        <th style="width: 10%">RAM</th>
-                        <th style="width: 25%">Processador</th>
-                        <th style="width: 15%">Nº de Série</th>
-                        <th style="width: 15%">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="pcTableBody"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PC</th>
+                            <th>Usuário</th>
+                            <th>RAM</th>
+                            <th>CPU</th>
+                            <th>S/N</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pcTableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <div id="tab-printers" class="tab-content" style="display:none;">
         <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 25%">Modelo</th>
-                        <th style="width: 25%">Nº de Série</th>
-                        <th style="width: 35%">Observação / Localização</th>
-                        <th style="width: 15%">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="printerTableBody"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>S/N</th>
+                            <th>Obs/Local</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="printerTableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -84,7 +96,7 @@
             <p id="l-serial"></p>
             <p id="l-extra"></p>
         </div>
-        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Imprimir Etiqueta</button>
+        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
     </div>
 </div>
 

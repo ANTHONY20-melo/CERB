@@ -1,5 +1,7 @@
 let pcs = JSON.parse(localStorage.getItem('ti_pcs')) || [];
 let printers = JSON.parse(localStorage.getItem('ti_printers')) || [];
+let editandoIndex = null;
+let editandoTipo = null;
 
 const listaNucleos = [
     "SALVADOR", "BARREIRAS", "CAETITE", "IRECE", "JUAZEIRO", 
@@ -15,6 +17,13 @@ const mapaSiglas = {
     "VCONQUISTA": "VITORIA DA CONQUISTA"
 };
 
+// --- FUNÇÕES DE INTERFACE ---
+
+function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('active');
+    document.querySelector('.sidebar-overlay').classList.toggle('active');
+}
+
 function identificarNucleo(texto) {
     if (!texto) return "SALVADOR";
     let t = texto.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -29,84 +38,88 @@ function identificarNucleo(texto) {
 function scrollToNucleo(nucleo) {
     const id = "row-" + nucleo.replace(/\s/g, '');
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (window.innerWidth <= 768) toggleSidebar();
+    }
 }
 
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + tabName).style.display = 'block';
-    event.currentTarget.classList.add('active');
+    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    if (window.innerWidth <= 768) toggleSidebar();
 }
 
-// IMPORTAÇÃO E PROCESSAMENTO
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        const wb = XLSX.read(evt.target.result, { type: 'binary' });
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        distribuirDados(data);
-    };
-    reader.readAsBinaryString(file);
-});
+window.onscroll = function() {
+    const btn = document.getElementById("backToTop");
+    if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+        btn.style.display = "flex";
+    } else {
+        btn.style.display = "none";
+    }
+};
 
-function distribuirDados(rows) {
-    rows.forEach(row => {
-        const item = {};
-        Object.keys(row).forEach(k => {
-            const key = k.toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            item[key] = row[k];
-        });
+// --- EDIÇÃO DE REGISTROS ---
 
-        if (item['PROCESSADOR'] || item['CPU'] || item['USUARIO']) {
-            pcs.push({
-                pc: (item['PC'] || item['COMPUTADOR'] || 'PC-NOVO').toUpperCase(),
-                usuario: item['USUARIO'] || 'N/A',
-                ram: item['RAM'] || '-',
-                cpu: item['PROCESSADOR'] || item['CPU'] || '-',
-                serial: item['Nº DE SERIE'] || item['SERIAL'] || 'S/N'
-            });
-        } else if (item['MODELO'] || item['OBSERVACAO']) {
-            const obs = (item['OBSERVACAO'] || "").toUpperCase();
-            printers.push({
-                modelo: item['MODELO'] || 'Impressora',
-                serial: item['Nº DE SERIE'] || 'S/N',
-                obs: obs,
-                nucleo: identificarNucleo(obs)
-            });
-        }
-    });
+function abrirEditor(tipo, idx) {
+    editandoTipo = tipo;
+    editandoIndex = idx;
+    const item = tipo === 'pc' ? pcs[idx] : printers[idx];
+    const form = document.getElementById('formEdicao');
+    
+    // Título dinâmico para o modal de edição (opcional, adicione um id no H3 do modal)
+    
+    if (tipo === 'pc') {
+        form.innerHTML = `
+            <div class="edit-form">
+                <label>Identificação do PC</label><input type="text" id="edit-pc" value="${item.pc}">
+                <label>Usuário Responsável</label><input type="text" id="edit-user" value="${item.usuario}">
+                <label>Memória RAM</label><input type="text" id="edit-ram" value="${item.ram}">
+                <label>Processador</label><input type="text" id="edit-cpu" value="${item.cpu}">
+                <label>Nº de Série</label><input type="text" id="edit-sn" value="${item.serial}">
+                <button type="button" class="btn-save-edit" onclick="salvarEdicao()"><i class="fas fa-save"></i> Atualizar Dados</button>
+            </div>
+        `;
+    } else {
+        form.innerHTML = `
+            <div class="edit-form">
+                <label>Modelo</label><input type="text" id="edit-modelo" value="${item.modelo}">
+                <label>Nº de Série</label><input type="text" id="edit-sn" value="${item.serial}">
+                <label>Observação / Localização</label><input type="text" id="edit-obs" value="${item.obs}">
+                <button type="button" class="btn-save-edit" onclick="salvarEdicao()"><i class="fas fa-save"></i> Atualizar Dados</button>
+            </div>
+        `;
+    }
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function salvarEdicao() {
+    if (editandoTipo === 'pc') {
+        pcs[editandoIndex] = {
+            pc: document.getElementById('edit-pc').value.toUpperCase(),
+            usuario: document.getElementById('edit-user').value,
+            ram: document.getElementById('edit-ram').value,
+            cpu: document.getElementById('edit-cpu').value,
+            serial: document.getElementById('edit-sn').value
+        };
+    } else {
+        const obs = document.getElementById('edit-obs').value;
+        printers[editandoIndex] = {
+            modelo: document.getElementById('edit-modelo').value,
+            serial: document.getElementById('edit-sn').value,
+            obs: obs,
+            nucleo: identificarNucleo(obs)
+        };
+    }
+    closeEditModal();
     save();
 }
-// ... (mantenha todas as funções anteriores: identificarNucleo, render, salvar, etc) ...
 
-// FUNÇÕES DE MENU MOBILE
-function toggleSidebar() {
-    const sidebar = document.getElementById('mainSidebar');
-    sidebar.classList.toggle('active');
-}
+function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
 
-// Fecha a sidebar se estiver no mobile (ajuda na navegação)
-function maybeCloseSidebar() {
-    if (window.innerWidth <= 768) {
-        toggleSidebar();
-    }
-}
-
-// Modifique a sua função scrollToNucleo para fechar a sidebar após clicar
-function scrollToNucleo(nucleo) {
-    maybeCloseSidebar();
-    const id = "row-" + nucleo.replace(/\s/g, '');
-    const el = document.getElementById(id);
-    if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-// Ajuste na função render() para garantir que as tabelas permitam scroll
-// Certifique-se de que o HTML gerado para as TRs de núcleo usem o ID correto row-ID
+// --- RENDERIZAÇÃO ---
 
 function render() {
     const pcBody = document.getElementById('pcTableBody');
@@ -123,7 +136,6 @@ function render() {
         const priN = printers.filter(p => p.nucleo === nucleo);
 
         if (pcsN.length > 0 || priN.length > 0) {
-            // Dashboard & Menu Lateral
             dash.innerHTML += `<div class="card-nucleo ${nId}"><span>${nucleo}</span><span>${pcsN.length} PCs | ${priN.length} Imp.</span></div>`;
             menu.innerHTML += `<button class="nav-item-sub" onclick="scrollToNucleo('${nucleo}')"><i class="fas fa-location-arrow"></i> ${nucleo}</button>`;
 
@@ -133,10 +145,21 @@ function render() {
                 pcBody.innerHTML += `<tr id="row-${nId}" class="row-nucleo ${nId}"><td colspan="6"><i class="fas fa-city"></i> ${nucleo}</td></tr>`;
                 fPcs.forEach(p => {
                     const idx = pcs.indexOf(p);
-                    pcBody.innerHTML += `<tr><td>${p.pc}</td><td>${p.usuario}</td><td>${p.ram}</td><td>${p.cpu}</td><td>${p.serial}</td><td>
-                        <button class="btn-action" onclick="abrirQR('pc', ${idx})"><i class="fas fa-qrcode"></i></button>
-                        <button class="btn-action" onclick="excluir('pc', ${idx})"><i class="fas fa-trash"></i></button>
-                    </td></tr>`;
+                    pcBody.innerHTML += `
+                    <tr>
+                        <td data-label="PC">${p.pc}</td>
+                        <td data-label="Usuário">${p.usuario}</td>
+                        <td data-label="RAM">${p.ram}</td>
+                        <td data-label="CPU">${p.cpu}</td>
+                        <td data-label="S/N">${p.serial}</td>
+                        <td data-label="Ações">
+                            <div class="actions-group">
+                                <button class="btn-action" onclick="abrirQR('pc', ${idx})"><i class="fas fa-qrcode"></i></button>
+                                <button class="btn-action btn-edit" onclick="abrirEditor('pc', ${idx})"><i class="fas fa-edit"></i></button>
+                                <button class="btn-action" onclick="excluir('pc', ${idx})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
                 });
             }
 
@@ -146,16 +169,30 @@ function render() {
                 printerBody.innerHTML += `<tr id="row-${nId}" class="row-nucleo ${nId}"><td colspan="4"><i class="fas fa-print"></i> ${nucleo}</td></tr>`;
                 fPri.forEach(p => {
                     const idx = printers.indexOf(p);
-                    printerBody.innerHTML += `<tr><td>${p.modelo}</td><td>${p.serial}</td><td>${p.obs}</td><td>
-                        <button class="btn-action" onclick="abrirQR('pri', ${idx})"><i class="fas fa-qrcode"></i></button>
-                        <button class="btn-action" onclick="excluir('pri', ${idx})"><i class="fas fa-trash"></i></button>
-                    </td></tr>`;
+                    printerBody.innerHTML += `
+                    <tr>
+                        <td data-label="Modelo">${p.modelo}</td>
+                        <td data-label="S/N">${p.serial}</td>
+                        <td data-label="Local">${p.obs}</td>
+                        <td data-label="Ações">
+                            <div class="actions-group">
+                                <button class="btn-action" onclick="abrirQR('pri', ${idx})"><i class="fas fa-qrcode"></i></button>
+                                <button class="btn-action btn-edit" onclick="abrirEditor('pri', ${idx})"><i class="fas fa-edit"></i></button>
+                                <button class="btn-action" onclick="excluir('pri', ${idx})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
                 });
             }
         }
     });
 }
 
+// Funções de apoio
+function save() { localStorage.setItem('ti_pcs', JSON.stringify(pcs)); localStorage.setItem('ti_printers', JSON.stringify(printers)); render(); }
+function excluir(t, i) { if(confirm("Deseja realmente excluir este item?")) { t==='pc' ? pcs.splice(i,1) : printers.splice(i,1); save(); } }
+function limparBase() { if(confirm("AVISO: Isso apagará TODOS os dados. Continuar?")) { pcs=[]; printers=[]; save(); } }
+function closeModal() { document.getElementById('qrModal').style.display = 'none'; }
 function abrirQR(tipo, idx) {
     const item = tipo === 'pc' ? pcs[idx] : printers[idx];
     document.getElementById('qrcode').innerHTML = '';
@@ -165,9 +202,5 @@ function abrirQR(tipo, idx) {
     document.getElementById('qrModal').style.display = 'flex';
 }
 
-function save() { localStorage.setItem('ti_pcs', JSON.stringify(pcs)); localStorage.setItem('ti_printers', JSON.stringify(printers)); render(); }
-function excluir(t, i) { if(confirm("Excluir?")) { t==='pc' ? pcs.splice(i,1) : printers.splice(i,1); save(); } }
-function limparBase() { if(confirm("Limpar tudo?")) { pcs=[]; printers=[]; save(); } }
-function closeModal() { document.getElementById('qrModal').style.display = 'none'; }
 document.getElementById('searchInput').addEventListener('input', render);
 render();

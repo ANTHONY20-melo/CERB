@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TI Inventory - CERB</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,20 +11,20 @@
 </head>
 <body>
 
-<button class="mobile-menu-toggle" onclick="toggleSidebar()">
+<button class="mobile-menu-btn" onclick="toggleSidebar()">
     <i class="fas fa-bars"></i>
 </button>
 
-<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<div class="sidebar" id="mainSidebar">
+<div class="sidebar" id="sidebar">
     <div class="logo">
-        <i class="fas fa-laptop-medical"></i> <span>TI SYSTEM</span>
-        <button class="close-sidebar" onclick="toggleSidebar()">&times;</button>
+        <i class="fas fa-laptop-medical"></i> 
+        <span>Inventário CERB</span>
     </div>
     <nav id="sidebar-nav">
-        <button class="nav-item active" onclick="showTab('pcs'); maybeCloseSidebar()"><i class="fas fa-desktop"></i> Computadores</button>
-        <button class="nav-item" onclick="showTab('printers'); maybeCloseSidebar()"><i class="fas fa-print"></i> Impressoras</button>
+        <button class="nav-item active" id="btn-pcs" onclick="showTab('pcs')"><i class="fas fa-desktop"></i> Computadores</button>
+        <button class="nav-item" id="btn-printers" onclick="showTab('printers')"><i class="fas fa-print"></i> Impressoras</button>
         
         <div class="menu-label">NÚCLEOS</div>
         <div id="nucleos-menu"></div>
@@ -42,7 +42,7 @@
     <header>
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar...">
+            <input type="text" id="searchInput" placeholder="Pesquisar no inventário...">
         </div>
     </header>
 
@@ -50,42 +50,42 @@
 
     <div id="tab-pcs" class="tab-content">
         <div class="table-container">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>PC</th>
-                            <th>Usuário</th>
-                            <th>RAM</th>
-                            <th>CPU</th>
-                            <th>S/N</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pcTableBody"></tbody>
-                </table>
-            </div>
+            <table class="responsive-table">
+                <thead>
+                    <tr>
+                        <th>PC</th>
+                        <th>Usuário</th>
+                        <th>RAM</th>
+                        <th>Processador</th>
+                        <th>Nº Série</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="pcTableBody"></tbody>
+            </table>
         </div>
     </div>
 
     <div id="tab-printers" class="tab-content" style="display:none;">
         <div class="table-container">
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Modelo</th>
-                            <th>S/N</th>
-                            <th>Obs/Local</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="printerTableBody"></tbody>
-                </table>
-            </div>
+            <table class="responsive-table">
+                <thead>
+                    <tr>
+                        <th>Modelo</th>
+                        <th>Nº Série</th>
+                        <th>Localização</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="printerTableBody"></tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<button id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+    <i class="fas fa-arrow-up"></i>
+</button>
 
 <div id="qrModal" class="modal">
     <div class="modal-content">
@@ -94,8 +94,16 @@
             <h2 id="l-title"></h2>
             <div id="qrcode"></div>
             <p id="l-serial"></p>
-            <p id="l-extra"></p>
         </div>
+        <div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h3><i class="fas fa-edit"></i> Editar Registro</h3>
+        <hr style="margin: 15px 0; opacity: 0.2;">
+        <form id="formEdicao" class="edit-form">
+            </form>
+    </div>
+</div>
         <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
     </div>
 </div>

@@ -1,119 +1,182 @@
-:root { 
-    --primary: #0f172a; 
-    --accent: #2563eb; 
-    --bg: #f8fafc; 
+:root {
+
+    --primary: #0f172a;
+
+    --accent: #2563eb;
+
+    --bg: #f8fafc;
+
     --text-main: #1e293b;
+
     --text-muted: #64748b;
+
 }
+
+
 
 body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; color: var(--text-main); }
 
+
+
 /* SIDEBAR */
+
 .sidebar { width: 250px; background: var(--primary); height: 100vh; position: fixed; color: white; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; }
+
 .logo { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; color: var(--accent); display: flex; gap: 10px; align-items: center; }
 
+
+
 nav { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
+
 nav::-webkit-scrollbar { width: 4px; }
+
 nav::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+
 
 .menu-label { font-size: 10px; color: var(--text-muted); margin: 20px 0 10px 12px; font-weight: bold; text-transform: uppercase; }
 
+
+
 .nav-item { display: block; width: 100%; padding: 12px; border-radius: 8px; border: none; margin-bottom: 5px; cursor: pointer; text-align: left; font-size: 14px; transition: 0.2s; color: #cbd5e1; background: transparent; }
+
 .nav-item:hover, .nav-item.active { background: var(--accent); color: white; }
 
+
+
 .nav-item-sub { display: block; width: 100%; padding: 8px 12px 8px 25px; border-radius: 6px; border: none; background: transparent; color: #94a3b8; cursor: pointer; text-align: left; font-size: 12px; transition: 0.2s; }
+
 .nav-item-sub:hover { background: #1e293b; color: white; }
 
+
+
 .btn-import { display: block; background: #334155; color: white; padding: 12px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
+
 .btn-danger { background: #450a0a; color: #f87171; width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; }
 
+
+
 /* CONTENT */
+
 .main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); box-sizing: border-box; }
+
 .search-box { background: white; padding: 12px 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
+
 .search-box input { border: none; outline: none; width: 100%; font-size: 1rem; }
 
+
+
 .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-bottom: 30px; }
+
 .card-nucleo { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; min-height: 70px; justify-content: space-between; }
+
 .card-nucleo span:first-child { font-size: 10px; color: var(--text-muted); font-weight: bold; }
+
 .card-nucleo span:last-child { font-size: 16px; font-weight: 800; }
 
+
+
 /* TABLES */
+
 .table-container { background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 40px; }
+
 table { width: 100%; border-collapse: collapse; }
+
 th { background: #f1f5f9; padding: 15px; text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+
 td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 
+
+
 .row-nucleo { font-weight: 800; color: var(--primary); scroll-margin-top: 100px; }
+
 .row-nucleo td { padding: 15px !important; border-bottom: 2px solid rgba(0,0,0,0.05) !important; }
 
+
+
 /* CORES DOS NÚCLEOS */
+
 .SALVADOR { border-left: 5px solid #64748b !important; } .row-nucleo.SALVADOR { background: #f1f5f9; }
+
 .BARREIRAS { border-left: 5px solid #2563eb !important; } .row-nucleo.BARREIRAS { background: #dbeafe; }
+
 .CAETITE { border-left: 5px solid #16a34a !important; } .row-nucleo.CAETITE { background: #dcfce7; }
+
 .IRECE { border-left: 5px solid #ea580c !important; } .row-nucleo.IRECE { background: #ffedd5; }
+
 .JUAZEIRO { border-left: 5px solid #9333ea !important; } .row-nucleo.JUAZEIRO { background: #f3e8ff; }
+
 .RIBEIRADOPOMBAL { border-left: 5px solid #be123c !important; } .row-nucleo.RIBEIRADOPOMBAL { background: #fff1f2; }
+
 .SEABRA { border-left: 5px solid #0891b2 !important; } .row-nucleo.SEABRA { background: #ecfeff; }
+
 .SENHORDOBONFIM { border-left: 5px solid #15803d !important; } .row-nucleo.SENHORDOBONFIM { background: #f0fdf4; }
+
 .SANTAMARIADAVITORIA { border-left: 5px solid #a16207 !important; } .row-nucleo.SANTAMARIADAVITORIA { background: #fefce8; }
+
 .TEIXEIRADEFREITAS { border-left: 5px solid #4338ca !important; } .row-nucleo.TEIXEIRADEFREITAS { background: #eef2ff; }
+
 .VITORIADACONQUISTA { border-left: 5px solid #0369a1 !important; } .row-nucleo.VITORIADACONQUISTA { background: #f0f9ff; }
 
+
+
 /* MODAL */
+
 .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
+
 .modal-content { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; }
+
 .btn-action { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 16px; margin-right: 8px; }
+
 .btn-action:hover { color: var(--accent); }
-/* ... (mantenha as variáveis e estilos base anteriores) ... */
-
-:root { 
-    --primary: #0f172a; 
-    --accent: #2563eb; 
-    --bg: #f8fafc; 
-    --text-main: #1e293b;
-    --text-muted: #64748b;
+/* Grupo de Ações - Garante que os botões não quebrem linha no PC */
+.actions-group {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
 }
 
-body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; color: var(--text-main); }
-
-/* SIDEBAR E RESPONSIVIDADE */
-.sidebar { width: 250px; background: var(--primary); height: 100vh; position: fixed; color: white; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; z-index: 1001; transition: transform 0.3s ease; }
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
-.mobile-menu-toggle { display: none; position: fixed; top: 15px; left: 15px; background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 8px; z-index: 999; cursor: pointer; }
-.close-sidebar { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-
-/* REGRAS PARA CELULAR (Telas menores que 768px) */
-@media (max-width: 768px) {
-    .sidebar { transform: translateX(-100%); width: 280px; }
-    .sidebar.active { transform: translateX(0); }
-    .sidebar.active + .sidebar-overlay { display: block; }
-    
-    .mobile-menu-toggle { display: block; }
-    .close-sidebar { display: block; }
-    .logo { justify-content: space-between; }
-
-    .main-content { margin-left: 0; width: 100%; padding: 70px 15px 20px 15px; }
-    
-    .dashboard-grid { grid-template-columns: 1fr; } /* Dashboard vira lista */
-    
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; } /* Scroll lateral na tabela */
-    
-    .modal-content { width: 90%; padding: 20px; }
+@media (max-width: 640px) {
+    .actions-group {
+        justify-content: space-around;
+        width: 100%;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
 }
 
-/* ESTILOS DE TABELA E DASHBOARD (Mantenha o que já tínhamos) */
-.main-content { margin-left: 250px; padding: 30px; width: calc(100% - 250px); transition: 0.3s; }
-.logo { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
-nav { overflow-y: auto; flex-grow: 1; }
-.nav-item, .nav-item-sub { cursor: pointer; border: none; text-align: left; transition: 0.2s; }
-.nav-item { width: 100%; padding: 12px; border-radius: 8px; color: #cbd5e1; background: transparent; margin-bottom: 5px; }
-.nav-item.active { background: var(--accent); color: white; }
-.nav-item-sub { width: 100%; padding: 8px 12px 8px 25px; color: #94a3b8; background: transparent; font-size: 12px; }
+/* Modal de Edição */
+.edit-form {
+    display: grid;
+    gap: 15px;
+    text-align: left;
+}
 
-.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-.card-nucleo { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
-.table-container { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-table { width: 100%; border-collapse: collapse; min-width: 600px; } /* Garante que a tabela não esmague no celular */
-th, td { padding: 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+.edit-form label {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--text-muted);
+}
 
-/* ... (Mantenha as cores das classes .SALVADOR, .BARREIRAS, etc., conforme o arquivo anterior) ... */
+.edit-form input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+}
+
+.btn-save-edit {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Botão Editar */
+.btn-edit { color: #f59e0b; } /* Cor Laranja/Âmbar */
+.btn-edit:hover { color: #d97706; }

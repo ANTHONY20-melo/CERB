@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clínica Vital - Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -14,17 +14,22 @@
         <div class="logo">
             <h2><i class="fas fa-heartbeat"></i> SBM</h2>
         </div>
-        <ul>
-            <li id="menu-home" class="active" onclick="showSection('home')">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </li>
-            <li id="menu-agenda" onclick="showSection('agenda')">
-                <i class="fas fa-calendar-alt"></i> Agenda
-            </li>
-            <li id="menu-financas" onclick="showSection('financas')">
-                <i class="fas fa-hand-holding-usd"></i> Financeiro
-            </li>
-        </ul>
+        <nav aria-label="menu principal">
+            <ul>
+                <li id="menu-home" class="active" role="button" tabindex="0" data-section="home">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </li>
+                <li id="menu-agenda" role="button" tabindex="0" data-section="agenda">
+                    <i class="fas fa-calendar-alt"></i> Agenda
+                </li>
+                <li id="menu-medicos" role="button" tabindex="0" data-section="medicos">
+                    <i class="fas fa-user-md"></i> Médicos
+                </li>
+                <li id="menu-financas" role="button" tabindex="0" data-section="financas">
+                    <i class="fas fa-hand-holding-usd"></i> Financeiro
+                </li>
+            </ul>
+        </nav>
         <div style="margin-top: auto; padding: 10px; font-size: 0.8rem; color: #888;">
             v2.0 Stable
         </div>
@@ -40,18 +45,18 @@
                     <img src="https://i.pravatar.cc/150?u=admin" alt="Foto Admin">
                     <span>Administrador</span>
                 </div>
-                <button class="btn-logout" onclick="logout()">
+                <button id="btn-logout" class="btn-logout" type="button" aria-label="Sair">
                     <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
             </div>
         </header>
 
-        <main class="content" id="main-display">
+        <main class="content" id="main-display" role="main">
             </main>
     </div>
 
     <div id="notification-container"></div>
-
-    <script src="script.js"></script>
+    
+    <script src="script.js" defer></script>
 </body>
 </html>

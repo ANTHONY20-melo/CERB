@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Clínica Vital</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body style="justify-content: center; align-items: center; background: var(--bg-body);">
+
+    <div class="login-card">
+        <i class="fas fa-clinic-medical" style="font-size: 3rem; color: var(--primary); margin-bottom: 15px;"></i>
+        <h2>Clínica SBM</h2>
+        <p style="color: var(--text-sub); margin-bottom: 25px;">Cuidados Integrados</p>
+        
+        <label for="user" class="sr-only">Usuário</label>
+        <input type="text" id="user" placeholder="Usuário (admin)">
+        <label for="pass" class="sr-only">Senha</label>
+        <input type="password" id="pass" placeholder="Senha (123)">
+        <button id="btn-login" type="button" style="width:100%; margin-top:10px;">Acessar Sistema</button>
+    </div>
+    <script>
+        document.getElementById('btn-login').addEventListener('click', function () {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            if (u === "admin" && p === "123") {
+                sessionStorage.setItem('isAdmin', 'true');
+                window.location.href = "index.html";
+            } else {
+                alert("Usuário ou senha incorretos!");
+            }
+        });
+    </script>
+</body>
+</html>

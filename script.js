@@ -1,3 +1,14 @@
+// --- CONTROLE DE VERSÃO DO ARMAZENAMENTO ---
+// Garante que o navegador do usuário não tenha dados de uma versão antiga e incompatível.
+const APP_STORAGE_VERSION = '2.1';
+const currentVersion = localStorage.getItem('app_storage_version');
+
+if (currentVersion !== APP_STORAGE_VERSION) {
+    sessionStorage.clear(); // Limpa a sessão para forçar o logout
+    localStorage.clear();   // Limpa os dados antigos
+    localStorage.setItem('app_storage_version', APP_STORAGE_VERSION);
+}
+
 // PROTEÇÃO: Se não estiver logado, volta para o login
 let usuarioLogado = JSON.parse(sessionStorage.getItem('usuarioLogado'));
 if (!usuarioLogado) {

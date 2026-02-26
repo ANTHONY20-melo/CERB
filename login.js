@@ -1,3 +1,14 @@
+// --- CONTROLE DE VERSÃO DO ARMAZENAMENTO ---
+// Se a versão do armazenamento for diferente da atual, limpa o localStorage para evitar inconsistências.
+// Isso força a recriação do usuário 'admin' com a senha correta em novos deploys.
+const APP_STORAGE_VERSION = '2.1'; // Incremente esta versão se fizer mudanças que quebram o formato dos dados.
+const currentVersion = localStorage.getItem('app_storage_version');
+
+if (currentVersion !== APP_STORAGE_VERSION) {
+    localStorage.clear(); // Limpa todo o armazenamento local do domínio.
+    localStorage.setItem('app_storage_version', APP_STORAGE_VERSION);
+}
+
 // Função de exibição de notificações (toasts)
 function showToast(message, type = 'success', duration = 3500) {
     const container = document.getElementById('toast-container');

@@ -18,7 +18,7 @@
         <nav aria-label="menu principal">
             <ul>
                 <li id="menu-home" class="active" role="button" tabindex="0" data-section="home">
-                    <i class="fas fa-chart-line"></i> Dashboard
+                    <i class="fas fa-bars"></i> MENU
                 </li>
                 <li id="menu-agenda" role="button" tabindex="0" data-section="agenda">
                     <i class="fas fa-calendar-alt"></i> Agenda
@@ -39,12 +39,16 @@
     <div class="main-container">
         <header>
             <div class="header-left">
-                <h3 id="page-title">Painel de Controle</h3>
+                <h3 id="page-title">MENU</h3>
             </div>
             <div class="header-right">
                 <div class="user-profile">
-                        <img id="user-avatar" src="https://i.pravatar.cc/150?u=admin" alt="Foto do usuário">
-                        <span id="user-name">Administrador</span>
+                    <img id="user-avatar" src="https://i.pravatar.cc/150?u=admin" alt="Foto do usuário">
+                    <span id="user-name">Administrador</span>
+                    <button id="btn-change-avatar" title="Alterar avatar" aria-label="Alterar avatar" style="background:transparent;border:none;color:white;cursor:pointer;margin-left:8px;">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                    <input type="file" id="avatar-input" accept="image/*" style="display:none;">
                 </div>
                 <button id="btn-logout" class="btn-logout" type="button" aria-label="Sair">
                     <i class="fas fa-sign-out-alt"></i> Sair

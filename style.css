@@ -255,6 +255,81 @@ button {
     color: white;
 }
 
+/* slider de menu */
+.slider { position: relative; }
+.slider .slide-image { width: 100%; height: auto; display: none; }
+.slider .slide-image.active { display: block; }
+
+/* Estilos para o tooltip do calendário e controles */
+#calendar-tooltip {
+    position: absolute;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.85);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+    max-width: 260px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+
+/* Controles do calendário (selects e botões) */
+#cal-month-select, #cal-year-select {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 0.95rem;
+    margin-left: 8px;
+}
+
+#cal-prev, #cal-next {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: white;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    header[style] { flex-direction: column; gap: 12px; align-items: flex-start; }
+    #cal-month-select, #cal-year-select { margin-top: 8px; margin-left: 0; width: 48%; }
+}
+
+/* Avatar change button in header */
+.user-profile { position: relative; }
+.user-profile #btn-change-avatar { background: rgba(255,255,255,0.06); padding:6px; border-radius:6px; }
+.user-profile #btn-change-avatar i { font-size:0.95rem; }
+
+/* Modal para solicitação de exame */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.modal-box {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.modal-box h4 { margin-bottom: 10px; }
+.modal-row { display:flex; gap:10px; margin-bottom:10px; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+.modal-actions .btn { min-width:100px; }
+
+@media (max-width: 480px) {
+    .modal-box { padding: 16px; width: calc(100% - 32px); }
+}
+
 /* Acessibilidade: texto oculto visualmente mas disponível para leitores de tela */
 .sr-only {
     position: absolute !important;
@@ -322,6 +397,37 @@ button {
 .med-table td { padding:10px; border-bottom:1px solid var(--border); }
 .med-table .btn-edit { background:#f39c12; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; margin-right:4px; font-size: 0.85rem; }
 .med-table .btn-delete { background:#e74c3c; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size: 0.85rem; }
+
+/* Badges dentro das células do calendário */
+.cal-badge {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 3px 6px;
+    border-radius: 999px;
+    margin-top: 6px;
+    margin-right: 6px;
+}
+.cal-count-badge {
+    display: inline-block;
+    background: #eef5ff;
+    color: var(--primary);
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+/* ajustes seletor de modal para dia específico (ajuda visual) */
+.modal-box h4 { font-size: 1.2rem; margin-bottom: 12px; }
+/* botões dentro do modal de dia */
+.btn-edit-day, .btn-delete-day { padding: 4px 8px; margin: 0 2px; font-size:0.8rem; }
+.btn-edit-day { background: #f39c12; color: white; border: none; border-radius:4px; cursor:pointer; }
+.btn-delete-day { background: #e74c3c; color: white; border: none; border-radius:4px; cursor:pointer; }
+
+/* Pequeno ajuste visual para células com agendamento */
+td[data-dia] { vertical-align: top; }
 
 @media (max-width: 900px) {
     .med-grid { grid-template-columns: 1fr; }

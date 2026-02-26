@@ -62,6 +62,16 @@
 
     <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
     <script>
+        // Função de exibição de notificações (toasts)
+        function showToast(message, type = 'success', duration = 3500) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<div class="toast-msg">${message}</div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('fadeOut'); setTimeout(() => toast.remove(), 500); }, duration);
+        }
         // showToast already defined above; aqui apenas usamos
 
         // Navegação entre abas
@@ -84,6 +94,14 @@
             try { document.getElementById('user').value = ''; document.getElementById('pass').value = ''; } catch (e){}
         });
 
+        // Função SHA-256 simples usada para migrar senhas antigas
+        async function sha256(password) {
+            const enc = new TextEncoder();
+            const data = enc.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
         // Gera um salt aleatório (16 bytes = 128 bits)
         function generateSalt() {
             return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -101,7 +119,7 @@
             return { salt, hash };
         }
 
-        // Login (usa PBKDF2 com salt)
+        // Login (usa PBKDF2 com salt + migração de schema antigo)
         document.getElementById('btn-login').addEventListener('click', async function () {
             const u = document.getElementById('user').value.trim();
             const p = document.getElementById('pass').value;
@@ -111,9 +129,31 @@
             const usuario = usuarios.find(usr => usr.usuario === u);
             if (!usuario) { showToast('Usuário ou senha incorretos!', 'error'); return; }
 
-            const { hash: hashedInput } = await deriveKey(p, usuario.salt);
-            if (usuario.senha !== hashedInput) { showToast('Usuário ou senha incorretos!', 'error'); return; }
-            
+            let valid = false;
+            if (usuario.salt) {
+                const { hash: hashedInput } = await deriveKey(p, usuario.salt);
+                if (usuario.senha === hashedInput) valid = true;
+            } else {
+                // suporte legado: senha gravada como SHA256
+                const legacy = await sha256(p);
+                if (usuario.senha === legacy) {
+                    valid = true;
+                }
+                // também suporte legado mais antigo: senha em texto simples
+                if (!valid && usuario.senha === p) {
+                    valid = true;
+                }
+                if (valid) {
+                    // migrar para PBKDF2+salt
+                    const { salt, hash } = await deriveKey(p);
+                    usuario.salt = salt;
+                    usuario.senha = hash;
+                    localStorage.setItem('usuarios', JSON.stringify(usuarios));
+                }
+            }
+
+            if (!valid) { showToast('Usuário ou senha incorretos!', 'error'); return; }
+
             const usuarioSessao = Object.assign({}, usuario);
             delete usuarioSessao.senha;
             delete usuarioSessao.salt;
@@ -156,10 +196,13 @@
                 showToast('Conta criada localmente, erro ao enviar ao servidor.', 'info');
             }
 
-            // volta ao login sem preencher automaticamente
-            document.getElementById('tab-login').click();
-            document.getElementById('user').value = '';
-            document.getElementById('pass').value = '';
+            // após cadastro, autenticar automaticamente e redirecionar
+            const usuarioSessao = Object.assign({}, novoUsuario);
+            delete usuarioSessao.senha;
+            delete usuarioSessao.salt;
+            sessionStorage.setItem('usuarioLogado', JSON.stringify(usuarioSessao));
+            // navega para o dashboard
+            window.location.href = 'index.html';
         });
 
         if (!JSON.parse(localStorage.getItem('usuarios'))) {

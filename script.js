@@ -28,6 +28,13 @@ if (!medicos) {
 let activeChart = null;
 let editandoIndex = null;
 let editandoMedicoIndex = null;
+// Estado do calendário (mês/ano) para navegação entre meses
+const hojeCalendario = new Date();
+// Tenta restaurar seleção anterior do sessionStorage (persistência entre navegações)
+const savedMonth = sessionStorage.getItem('calendarMonth');
+const savedYear = sessionStorage.getItem('calendarYear');
+let calendarMonth = savedMonth !== null ? parseInt(savedMonth, 10) : hojeCalendario.getMonth();
+let calendarYear = savedYear !== null ? parseInt(savedYear, 10) : hojeCalendario.getFullYear();
 
 // SISTEMA DE NOTIFICAÇÃO (TOAST)
 function notify(mensagem, tipo = 'sucesso') {
@@ -49,21 +56,7 @@ function notify(mensagem, tipo = 'sucesso') {
 
 // TELAS (HTML INTERNO)
 const contentData = {
-    home: `
-        <div class="stats-grid">
-            <div class="stat-card">
-                <i class="fas fa-user-injured"></i>
-                <div><h3 id="dash-pacientes">0</h3><p>Pacientes</p></div>
-            </div>
-            <div class="stat-card" id="card-saldo" style="border-left-color: var(--success)">
-                <i class="fas fa-coins"></i>
-                <div><h3 id="dash-saldo">R$ 0,00</h3><p>Saldo em Caixa</p></div>
-            </div>
-        </div>
-        <div class="card">
-            <h3>Fluxo de Atendimento Semanal</h3>
-            <div class="chart-container"><canvas id="homeChart"></canvas></div>
-        </div>`,
+    home: `<div id="menu-slider-container"></div>`,
     
     agenda: `<div id="agenda-container"></div>`,
     financas: `<div id="financas-container"></div>`
@@ -71,7 +64,8 @@ const contentData = {
     medicos: `<div id="medicos-container"></div>`,
     marcacao: `<div id="marcacao-container"></div>`,
     exames: `<div id="exames-container"></div>`,
-    calendario: `<div id="calendario-container"></div>`
+    calendario: `<div id="calendario-container"></div>`,
+    solicitacoes: `<div id="solicitacoes-container"></div>`
 };
 
 // --- NAVEGAÇÃO ---
@@ -85,10 +79,12 @@ function buildDynamicMenu() {
     menu.innerHTML = '';
 
     const menuItems = [
-        { id: 'menu-home', label: 'Dashboard', icon: 'fa-chart-line', section: 'home' }
+        { id: 'menu-home', label: 'MENU', icon: 'fa-bars', section: 'home' }
     ];
 
     if (usuarioLogado.perfil === 'admin') {
+        // Administrador vê Solicitações e telas administrativas
+        menuItems.push({ id: 'menu-solicitacoes', label: 'Solicitações', icon: 'fa-file-medical', section: 'solicitacoes' });
         menuItems.push(
             { id: 'menu-agenda', label: 'Agenda', icon: 'fa-calendar-alt', section: 'agenda' },
             { id: 'menu-medicos', label: 'Médicos', icon: 'fa-user-md', section: 'medicos' },
@@ -116,22 +112,351 @@ function buildDynamicMenu() {
     });
 }
 
+// Renderiza listagem de solicitações de exames
+function renderSolicitacoesUI() {
+    const container = document.getElementById('solicitacoes-container');
+    if (!container) return;
+
+    const todos = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+    const lista = usuarioLogado.perfil === 'admin' ? todos : todos.filter(s => String(s.usuarioId) === String(usuarioLogado.id || usuarioLogado.usuario));
+
+    const html = `
+        <div class="card">
+            <h3>Solicitações de Exames (${lista.length})</h3>
+            ${lista.length === 0 ? '<p style="color:var(--text-sub)">Nenhuma solicitação encontrada.</p>' : `
+            <div style="overflow-x:auto; margin-top:12px;">
+                <table style="width:100%; border-collapse: collapse; min-width: 720px;">
+                    <thead>
+                        <tr style="background:#f8f9fa; text-align:left;"><th style="padding:10px;">Data</th><th>Exame</th><th>Paciente</th><th>Pagamento</th><th>Status</th><th style="text-align:center;">Ações</th></tr>
+                    </thead>
+                    <tbody>
+                        ${lista.map(s => `
+                            <tr>
+                                <td style="padding:10px;">${s.data} ${s.hora}</td>
+                                <td>${s.exameNome}</td>
+                                <td>${s.usuarioId}</td>
+                                <td>${s.pagamento}</td>
+                                <td>
+                                    <select class="sol-status" data-id="${s.id}" style="padding:6px; border-radius:6px;">
+                                        <option value="Pendente" ${s.status==='Pendente'?'selected':''}>Pendente</option>
+                                        <option value="Confirmado" ${s.status==='Confirmado'?'selected':''}>Confirmado</option>
+                                        <option value="Concluído" ${s.status==='Concluído'?'selected':''}>Concluído</option>
+                                        <option value="Cancelado" ${s.status==='Cancelado'?'selected':''}>Cancelado</option>
+                                    </select>
+                                </td>
+                                <td style="text-align:center;">
+                                    <button class="btn-view" data-id="${s.id}">Ver</button>
+                                    ${usuarioLogado.perfil === 'admin' && s.status !== 'Confirmado' ? `<button class="btn-convert-sol" data-id="${s.id}">Converter</button>` : ''}
+                                    <button class="btn-delete-sol" data-id="${s.id}">Excluir</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            `}
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Event listeners: alterar status
+    container.querySelectorAll('.sol-status').forEach(sel => {
+        sel.addEventListener('change', () => {
+            const id = sel.dataset.id;
+            const all = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+            const idx = all.findIndex(x => String(x.id) === String(id));
+            if (idx >= 0) {
+                all[idx].status = sel.value;
+                localStorage.setItem('examesSolicitados', JSON.stringify(all));
+                notify('Status atualizado', 'sucesso');
+                // se desejar, também atualizar agenda se necessário
+                renderSolicitacoesUI();
+            }
+        });
+    });
+
+    container.querySelectorAll('.btn-delete-sol').forEach(btn => btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        if (!confirm('Excluir essa solicitação?')) return;
+        let all = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+        all = all.filter(x => String(x.id) !== String(id));
+        localStorage.setItem('examesSolicitados', JSON.stringify(all));
+        notify('Solicitação removida', 'erro');
+        renderSolicitacoesUI();
+    }));
+
+    // Converter solicitação em consulta (apenas admin)
+    container.querySelectorAll('.btn-convert-sol').forEach(btn => btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        if (!confirm('Confirmar e converter esta solicitação em consulta?')) return;
+        const all = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+        const idx = all.findIndex(x => String(x.id) === String(id));
+        if (idx < 0) return;
+        const s = all[idx];
+        s.status = 'Confirmado';
+        all[idx] = s;
+        localStorage.setItem('examesSolicitados', JSON.stringify(all));
+
+        // Verifica se já existe agendamento similar; se existir, marca como Confirmado, senão cria um novo
+        const agenda = JSON.parse(localStorage.getItem('agendaSalva')) || [];
+        const found = agenda.find(a => String(a.usuarioId) === String(s.usuarioId) && String(a.data).startsWith(String(s.data)) && (a.hora === s.hora || String(a.hora).startsWith(String(s.hora))));
+        if (found) {
+            found.status = 'Confirmado';
+        } else {
+            const novo = {
+                id: 'conv-' + Date.now(),
+                usuarioId: s.usuarioId,
+                nome: s.usuarioId,
+                data: s.data,
+                hora: s.hora,
+                medico: s.medico || 'Aguardando',
+                status: 'Confirmado',
+                tipo: 'Exame',
+                criadoEm: new Date().toISOString()
+            };
+            agenda.push(novo);
+        }
+        localStorage.setItem('agendaSalva', JSON.stringify(agenda));
+
+        notify('Solicitação confirmada e convertida em consulta', 'sucesso');
+        renderSolicitacoesUI();
+        try { renderAgendaUI(); } catch (e) {}
+        try { renderCalendarioUI(); } catch (e) {}
+    }));
+
+    container.querySelectorAll('.btn-view').forEach(btn => btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const all = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+        const s = all.find(x => String(x.id) === String(id));
+        if (!s) return;
+        alert(`Solicitação:\nExame: ${s.exameNome}\nData: ${s.data} ${s.hora}\nPagamento: ${s.pagamento}\nStatus: ${s.status}`);
+    }));
+}
+
 function updateHeaderUser() {
     document.getElementById('user-name').textContent = usuarioLogado.nome;
-    document.getElementById('user-avatar').src = `https://i.pravatar.cc/150?u=${usuarioLogado.usuario}`;
+    const avatarEl = document.getElementById('user-avatar');
+    if (usuarioLogado.avatar) avatarEl.src = usuarioLogado.avatar;
+    else avatarEl.src = `https://i.pravatar.cc/150?u=${usuarioLogado.usuario}`;
+}
+
+// Inicializa troca de avatar no header
+function initAvatarUpload() {
+    const btn = document.getElementById('btn-change-avatar');
+    const input = document.getElementById('avatar-input');
+    if (!btn || !input) return;
+
+    btn.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        // limite simples: 2MB
+        if (file.size > 2 * 1024 * 1024) { notify('Arquivo muito grande (máx 2MB)', 'erro'); return; }
+        handleAvatarFile(file);
+    });
+}
+
+function handleAvatarFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        const dataUrl = reader.result;
+        // Atualiza sessão e armazenamento de usuários
+        usuarioLogado.avatar = dataUrl;
+        sessionStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+
+        const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+        const idx = usuarios.findIndex(u => (u.usuario && usuarioLogado.usuario && u.usuario === usuarioLogado.usuario) || (u.id && usuarioLogado.id && u.id === usuarioLogado.id));
+        if (idx >= 0) {
+            usuarios[idx].avatar = dataUrl;
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+        }
+
+        updateHeaderUser();
+        notify('Avatar atualizado com sucesso!', 'sucesso');
+    };
+    reader.readAsDataURL(file);
+}
+
+// Atualiza título da página (header) de acordo com seção
+function updatePageTitle(section) {
+    const titleMap = { home: 'MENU', agenda: 'Agenda', medicos: 'Médicos', financas: 'Financeiro', marcacao: 'Marcação', exames: 'Exames', calendario: 'Calendário' };
+    document.getElementById('page-title').textContent = titleMap[section] || '';
+}
+
+// Renderiza menu com logo de fundo transparente, carrossel de saúde e informações de atendimento
+function renderMenuUI() {
+    const container = document.getElementById('menu-slider-container');
+    if (!container) return;
+    container.style.minHeight = 'auto';
+    container.innerHTML = '';
+    // Remover imagem de fundo solicitada pelo usuário
+    container.style.backgroundImage = 'none';
+    container.style.backgroundColor = '#f8f9fa';
+
+    const html = `
+        <!-- Hero com sobreposição -->
+        <div style="background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6)); min-height: 300px; display: flex; align-items: center; justify-content: center; color: white; text-align: center;">
+            <div>
+                <h1 style="font-size: 2.5rem; margin: 0; font-weight: bold;">Bem-vindo à Clínica SBM</h1>
+                <p style="font-size: 1.1rem; margin: 10px 0 0 0;">Cuidados integrados para sua saúde</p>
+            </div>
+        </div>
+
+        <!-- Carrossel de Saúde -->
+        <div style="padding: 40px 20px; background: #f8f9fa;">
+            <h2 style="text-align: center; margin-bottom: 30px; color: var(--text-main);">Conteúdo sobre Saúde e Bem-estar</h2>
+            <div class="carousel-wrapper" style="position: relative; max-width: 900px; margin: auto; overflow: hidden; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div class="carousel-container" style="display: flex; transition: transform 0.5s ease;">
+                    <div class="carousel-item" style="min-width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; color: white; text-align: center;">
+                        <i class="fas fa-heart" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <h3>Saúde do Coração</h3>
+                        <p>Mantenha seu coração saudável com exercícios regulares e alimentação equilibrada. Realize check-ups anuais com nossos cardiologistas.</p>
+                    </div>
+                    <div class="carousel-item" style="min-width: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 40px; color: white; text-align: center;">
+                        <i class="fas fa-dumbbell" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <h3>Exercício Físico</h3>
+                        <p>Atividade física regular reduz riscos de doenças. Consulte nossos profissionais para um programa personalizado.</p>
+                    </div>
+                    <div class="carousel-item" style="min-width: 100%; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 40px; color: white; text-align: center;">
+                        <i class="fas fa-apple-alt" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <h3>Nutrição Balanceada</h3>
+                        <p>Uma alimentação equilibrada é essencial. Marque uma consulta com nossos nutricionistas para orientação personalizada.</p>
+                    </div>
+                    <div class="carousel-item" style="min-width: 100%; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 40px; color: white; text-align: center;">
+                        <i class="fas fa-bed" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <h3>Qualidade do Sono</h3>
+                        <p>Dormir bem é fundamental para a saúde. Dicas: mantenha uma rotina, evite telas antes de dormir.</p>
+                    </div>
+                    <div class="carousel-item" style="min-width: 100%; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 40px; color: white; text-align: center;">
+                        <i class="fas fa-flask" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                        <h3>Exames Preventivos</h3>
+                        <p>Realize exames periódicos para diagnóstico precoce. Oferecemos hemograma, colesterol, glicemia e muito mais.</p>
+                    </div>
+                </div>
+                <button class="carousel-btn prev" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); z-index: 10; background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem;">❮</button>
+                <button class="carousel-btn next" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem;">❯</button>
+            </div>
+        </div>
+
+        <!-- Locais de Atendimento -->
+        <div style="padding: 40px 20px; background: white;">
+            <h2 style="text-align: center; margin-bottom: 30px; color: var(--text-main);">Locais de Atendimento</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto;">
+                <div class="location-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                    <h4 style="color: var(--primary); margin-top: 0;">Unidade Centro</h4>
+                    <p><i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>Rua Principal, 123 - Centro</p>
+                    <p><i class="fas fa-phone" style="margin-right: 8px;"></i>(11) 3333-3333</p>
+                    <p><i class="fas fa-clock" style="margin-right: 8px;"></i>Seg-Sex: 08h às 19h | Sáb: 08h às 13h</p>
+                </div>
+                <div class="location-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid var(--success);">
+                    <h4 style="color: var(--success); margin-top: 0;">Unidade Zona Sul</h4>
+                    <p><i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>Av. Paulista, 456 - Zona Sul</p>
+                    <p><i class="fas fa-phone" style="margin-right: 8px;"></i>(11) 4444-4444</p>
+                    <p><i class="fas fa-clock" style="margin-right: 8px;"></i>Seg-Sex: 07h às 20h | Sáb: 08h às 14h</p>
+                </div>
+                <div class="location-card" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid var(--info, #9b59b6);">
+                    <h4 style="color: var(--info, #9b59b6); margin-top: 0;">Unidade Zona Norte</h4>
+                    <p><i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i>Rod. Anhanguera, 789 - Zona Norte</p>
+                    <p><i class="fas fa-phone" style="margin-right: 8px;"></i>(11) 5555-5555</p>
+                    <p><i class="fas fa-clock" style="margin-right: 8px;"></i>Seg-Sex: 08h às 18h | Dom: 09h às 13h</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviços Oferecidos -->
+        <div style="padding: 40px 20px; background: #f8f9fa;">
+            <h2 style="text-align: center; margin-bottom: 30px; color: var(--text-main);">Nossos Serviços</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto;">
+                <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-stethoscope" style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;"></i>
+                    <h4>Consultas Médicas</h4>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Atendimento com médicos especialistas</p>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-flask-vial" style="font-size: 2rem; color: var(--success); margin-bottom: 10px;"></i>
+                    <h4>Exames Laboratoriais</h4>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Hemograma, glicemia, colesterol e mais</p>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-x-ray" style="font-size: 2rem; color: #e74c3c; margin-bottom: 10px;"></i>
+                    <h4>Imagem Médica</h4>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Raio-X, ultrassom e tomografia</p>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-heartbeat" style="font-size: 2rem; color: #f39c12; margin-bottom: 10px;"></i>
+                    <h4>Cardiologia</h4>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Especialidade em saúde do coração</p>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-leaf" style="font-size: 2rem; color: #27ae60; margin-bottom: 10px;"></i>
+                    <h4>Nutrição</h4>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Orientação nutricional personalizada</p>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-dumbbell" style="font-size: 2rem; color: #3498db; margin-bottom: 10px;"></i>
+                    <h4>Fisioterapia</h4>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Reabilitação e prevenção de lesões</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div style="padding: 40px 20px; background: linear-gradient(135deg, var(--primary), var(--success)); color: white; text-align: center;">
+            <h2>Agende sua Consulta Agora</h2>
+            <p style="font-size: 1.1rem; margin: 15px 0;">Não adie sua saúde. Estamos prontos para cuidar de você!</p>
+            <p><i class="fas fa-phone" style="margin-right: 8px;"></i>Ligue: (11) 3333-3333</p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Lógica do carrossel
+    const carouselContainer = container.querySelector('.carousel-container');
+    let currentSlide = 0;
+    const totalSlides = container.querySelectorAll('.carousel-item').length;
+
+    function updateCarousel() {
+        carouselContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+
+    container.querySelector('.carousel-btn.prev').addEventListener('click', () => {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        updateCarousel();
+    });
+
+    container.querySelector('.carousel-btn.next').addEventListener('click', () => {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateCarousel();
+    });
+
+    // Auto-play do carrossel
+    setInterval(() => {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateCarousel();
+    }, 5000);
 }
 
 function showSection(section) {
     const display = document.getElementById('main-display');
+    // Proteção: solicitações só para admin
+    if (section === 'solicitacoes' && usuarioLogado.perfil !== 'admin') {
+        notify('Acesso negado: área restrita ao administrador', 'erro');
+        section = 'home';
+    }
+
     display.innerHTML = contentData[section];
 
+    updatePageTitle(section);
+
     document.querySelectorAll('.sidebar ul li').forEach(li => li.classList.remove('active'));
-    document.getElementById(`menu-${section}`).classList.add('active');
+    const menuEl = document.getElementById(`menu-${section}`);
+    if (menuEl) menuEl.classList.add('active');
 
     setTimeout(() => {
         if (section === 'home') {
-            atualizarDashboardHome();
-            renderChart();
+            renderMenuUI();
         }
         if (section === 'agenda') {
             renderAgendaUI();
@@ -388,7 +713,7 @@ function renderExamesUI() {
                         <h4>${ex.nome}</h4>
                         <p style="color: var(--text-sub); font-size: 0.9rem; margin: 10px 0;">${ex.descricao}</p>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-                            <span style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">R$ ${ex.preco.toFixed(2)}</span>
+                            <span style="font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-top:4px;">R$ ${ex.preco.toFixed(2)}</span>
                             <button class="btn btn-primary" data-exam-id="${ex.id}">Solicitar</button>
                         </div>
                     </div>
@@ -401,8 +726,102 @@ function renderExamesUI() {
         btn.addEventListener('click', () => {
             const exId = parseInt(btn.dataset.examId);
             const exame = examesDisponiveis.find(e => e.id === exId);
-            notify(`Exame "${exame.nome}" solicitado com sucesso!`, 'sucesso');
+            openExamRequestModal(exame);
         });
+    });
+}
+
+// Abre modal para o usuário escolher data, hora e forma de pagamento para o exame
+function openExamRequestModal(exame) {
+    if (!exame) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="modal-box" role="dialog" aria-modal="true" aria-label="Solicitar exame">
+            <h4>Solicitar: ${exame.nome}</h4>
+            <p style="color:var(--text-sub); font-size:0.95rem; margin-bottom:10px;">${exame.descricao}</p>
+            <div class="modal-row">
+                <div style="flex:1;">
+                    <label>Data</label>
+                    <input type="date" id="exam-date" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;">
+                </div>
+                <div style="width:120px;">
+                    <label>Hora</label>
+                    <input type="time" id="exam-time" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;">
+                </div>
+            </div>
+            <div style="margin-top:10px;">
+                <label>Forma de Pagamento</label>
+                <select id="exam-payment" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; margin-top:6px;">
+                    <option value="PIX">PIX</option>
+                    <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                    <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                    <option value="PLANO_SAUDE">Plano de Saúde</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="exam-cancel" class="btn btn-outline">Cancelar</button>
+                <button id="exam-submit" class="btn btn-primary">Confirmar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const closeModal = () => overlay.remove();
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+    overlay.querySelector('#exam-cancel')?.addEventListener('click', closeModal);
+
+    overlay.querySelector('#exam-submit')?.addEventListener('click', () => {
+        const date = overlay.querySelector('#exam-date').value;
+        const time = overlay.querySelector('#exam-time').value;
+        const payment = overlay.querySelector('#exam-payment').value;
+
+        if (!date || !time || !payment) { notify('Preencha data, hora e forma de pagamento', 'erro'); return; }
+
+        const examesSolicitados = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+        const pedido = {
+            id: Date.now(),
+            usuarioId: usuarioLogado.id || usuarioLogado.usuario,
+            exameId: exame.id,
+            exameNome: exame.nome,
+            data: date,
+            hora: time,
+            pagamento: payment,
+            status: 'Pendente',
+            criadoEm: new Date().toISOString()
+        };
+        examesSolicitados.unshift(pedido);
+        localStorage.setItem('examesSolicitados', JSON.stringify(examesSolicitados));
+
+        // 1) adicionar também à agendaSalva como pendente (para aparecer na agenda)
+        try {
+            const agenda = JSON.parse(localStorage.getItem('agendaSalva')) || [];
+                const appt = {
+                    id: 'exam-' + Date.now(),
+                    usuarioId: usuarioLogado.id || usuarioLogado.usuario,
+                    nome: usuarioLogado.nome || usuarioLogado.usuario || 'Paciente',
+                    data: date,
+                    hora: time,
+                    medico: exame.medico || 'Aguardando',
+                    status: 'Pendente',
+                    tipo: 'Exame',
+                    criadoEm: new Date().toISOString()
+                };
+            agenda.push(appt);
+            localStorage.setItem('agendaSalva', JSON.stringify(agenda));
+        } catch (e) {
+            console.error('Erro ao salvar na agenda', e);
+        }
+
+        closeModal();
+        notify('Solicitação enviada e adicionada à agenda', 'sucesso');
+        // atualizar telas relevantes
+        try { renderCalendarioUI(); } catch (e) {}
+        try { renderAgendaUI(); } catch (e) {}
+        if (document.getElementById('solicitacoes-container')) renderSolicitacoesUI();
     });
 }
 
@@ -410,9 +829,8 @@ function renderCalendarioUI() {
     const container = document.getElementById('calendario-container');
     if (!container) return;
 
-    const hoje = new Date();
-    const mes = hoje.getMonth();
-    const ano = hoje.getFullYear();
+    const mes = calendarMonth;
+    const ano = calendarYear;
 
     const primeiroDia = new Date(ano, mes, 1);
     const ultimoDia = new Date(ano, mes + 1, 0);
@@ -423,10 +841,33 @@ function renderCalendarioUI() {
                         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+    // Cabeçalho com navegação entre meses
     let html = `
         <div class="card">
-            <h3>Calendário de Disponibilidade - ${nomesMeses[mes]} ${ano}</h3>
-            <table style="width: 100%; text-align: center; border-collapse: collapse; margin: 20px 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div>
+                    <button id="cal-prev" class="btn btn-outline" aria-label="Mês anterior">❮</button>
+                    <button id="cal-next" class="btn btn-outline" aria-label="Próximo mês">❯</button>
+                </div>
+                <div style="font-weight:700; font-size:1.05rem;">${nomesMeses[mes]} ${ano}</div>
+                <div>
+                    <select id="cal-month-select" aria-label="Selecionar mês">
+                        ${nomesMeses.map((mName, i) => `<option value="${i}" ${i === mes ? 'selected' : ''}>${mName}</option>`).join('')}
+                    </select>
+                    <select id="cal-year-select" aria-label="Selecionar ano">
+                        ${(() => {
+                            // anos entre ano-5 e ano+5 (mais opções)
+                            let opts = '';
+                            for (let y = ano - 5; y <= ano + 5; y++) {
+                                opts += `<option value="${y}" ${y === ano ? 'selected' : ''}>${y}</option>`;
+                            }
+                            return opts;
+                        })()}
+                    </select>
+                </div>
+            </div>
+
+            <table style="width: 100%; text-align: center; border-collapse: collapse; margin: 10px 0;">
                 <thead>
                     <tr>
                         ${diasSemana.map(d => `<th style="padding: 10px; background: var(--primary); color: white;">${d}</th>`).join('')}
@@ -436,35 +877,247 @@ function renderCalendarioUI() {
                     ${(() => {
                         let html = '<tr>';
                         for (let i = 0; i < comecaEm; i++) html += '<td></td>';
-                        
+
                         for (let dia = 1; dia <= diasDoMes; dia++) {
                             const dataObj = new Date(ano, mes, dia);
                             const weekday = dataObj.getDay();
-                            const medicosDia = medicos.filter(m => m.dias.includes(weekday));
-                            const temMedicos = medicosDia.length > 0;
 
-                            html += `<td style="padding: 15px; border: 1px solid var(--border); ${temMedicos ? 'background: #f0f8ff;' : ''} cursor: ${temMedicos ? 'pointer' : 'default'};">
-                                <div style="font-weight: bold;">${dia}</div>
-                                ${temMedicos ? `<div style="font-size: 0.75rem; color: var(--primary); margin-top: 5px;">${medicosDia.length} médico(s)</div>` : ''}
-                            </td>`;
+                            // Se for admin: mostra médicos por dia (visão operativa)
+                            if (usuarioLogado.perfil === 'admin') {
+                                // primeiro, verificar se há agendamentos para este dia
+                                const dateStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+                                const appts = (agendaSalva || []).filter(a => String(a.data).startsWith(dateStr));
+                                if (appts.length > 0) {
+                                    // montar badges com hora – paciente – médico
+                                    const badges = appts.slice(0,2).map(a => {
+                                        const hora = a.hora || (String(a.data).split(' ')[1]||'');
+                                        const nomePac = a.nome || a.usuarioId;
+                                        const med = a.medico || '';
+                                        return `<span class="cal-badge">${hora} ${nomePac}${med ? ' - ' + med : ''}</span>`;
+                                    }).join(' ');
+                                    const extra = appts.length > 2 ? `<span class="cal-badge">+${appts.length - 2} mais</span>` : '';
+                                    html += `<td data-dia="${dia}" data-medicos="${appts.length} agendamento(s)" style="padding: 12px; border: 1px solid var(--border); background: #f0f8ff; cursor: pointer;">
+                                        <div style="font-weight: bold;">${dia}</div>
+                                        <div style="margin-top:6px;">${badges} ${extra}</div>
+                                    </td>`;
+                                } else {
+                                    // nenhum agendamento, mostrar disponibilidade de médicos como antes
+                                    const medicosDia = medicos.filter(m => m.dias.includes(weekday));
+                                    const temMedicos = medicosDia.length > 0;
+                                    const countLabel = `${medicosDia.length} médico(s) disponível(is)`;
+                                    html += `<td data-dia="${dia}" data-medicos='${countLabel.replace(/'/g, "&#39;")}' style="padding: 12px; border: 1px solid var(--border); ${temMedicos ? 'background: #f0f8ff; cursor: pointer;' : ''}">
+                                        <div style="font-weight: bold;">${dia}</div>
+                                        ${temMedicos ? `<div style="margin-top:6px;"><span class="cal-count-badge">${medicosDia.length} disponível(is)</span></div>` : ''}
+                                    </td>`;
+                                }
+                            } else {
+                                // Usuário comum: mostrar apenas os agendamentos/exames do próprio usuário
+                                const compareDateStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+                                const meus = (agendaSalva || []).filter(a => {
+                                    const uid = String(a.usuarioId || a.usuarioId === 0 ? a.usuarioId : '') ;
+                                    const meId = String(usuarioLogado.id || usuarioLogado.usuario || '');
+                                    // verifica vínculo de usuário
+                                    if (!meId) return false;
+                                    if (String(a.usuarioId) !== meId) return false;
+                                    // normaliza datas que podem vir como 'YYYY-MM-DD', 'YYYY-MM-DD HH:MM' ou com T
+                                    if (!a.data) return false;
+                                    return String(a.data).startsWith(compareDateStr);
+                                });
+
+                                if (meus.length > 0) {
+                                    // construir badges com horário — mostra até 2 e um +N se houver mais
+                                    const preview = meus.slice(0,2);
+                                    const badgesHtml = preview.map(m => {
+                                        const hora = m.hora || (String(m.data).split(' ')[1] || '').replace('T',' ');
+                                        const medicoLabel = m.medico || m.tipo || '';
+                                        return `<span class="cal-badge">${hora} — ${medicoLabel}</span>`;
+                                    }).join(' ');
+                                    const more = meus.length > 2 ? `<span class="cal-badge">+${meus.length - 2} mais</span>` : '';
+                                    const detalhe = meus.map(m => `${m.hora || (String(m.data).split(' ')[1]||'')} — ${m.medico || m.tipo || ''}`).join('\n');
+                                    const safe = detalhe.replace(/'/g, "&#39;").replace(/\n/g, ' / ');
+                                    html += `<td data-dia="${dia}" data-medicos='${safe}' style="padding: 12px; border: 1px solid var(--border); background: #e8f7ef; cursor: pointer;">
+                                        <div style="font-weight: bold;">${dia}</div>
+                                        <div style="margin-top:6px;">${badgesHtml} ${more}</div>
+                                    </td>`;
+                                } else {
+                                    // dia vazio para paciente — mostra o número do dia, sem destaque
+                                    html += `<td data-dia="${dia}" style="padding: 12px; border: 1px solid var(--border);"><div style="font-weight: bold;">${dia}</div></td>`;
+                                }
+                            }
 
                             if ((comecaEm + dia) % 7 === 0 && dia < diasDoMes) html += '</tr><tr>';
                         }
 
-                        const faltam = 42 - (comecaEm + diasDoMes);
+                        const cellsUsed = comecaEm + diasDoMes;
+                        const faltam = (Math.ceil(cellsUsed / 7) * 7) - cellsUsed;
                         for (let i = 0; i < faltam; i++) html += '<td></td>';
                         html += '</tr>';
                         return html;
                     })()}
                 </tbody>
             </table>
-            <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 15px;">
-                <i class="fas fa-info-circle"></i> Dias em azul claro têm médicos disponíveis para agendamento.
+            ${usuarioLogado.perfil === 'admin' ? `
+            <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 8px;">
+                <i class="fas fa-info-circle"></i> Passe o mouse sobre um dia para ver os médicos disponíveis.
             </p>
+            ` : `
+            <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 8px;">
+                <i class="fas fa-info-circle"></i> Seu calendário estará vazio até você agendar exames ou consultas; passe o mouse sobre dias com agendamentos para ver detalhes.
+            </p>
+            `}
         </div>
     `;
 
     container.innerHTML = html;
+
+    // Tooltip element (criado uma vez por render)
+    let tooltip = container.querySelector('#calendar-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'calendar-tooltip';
+        tooltip.style.position = 'absolute';
+        tooltip.style.padding = '8px 10px';
+        tooltip.style.background = 'rgba(0,0,0,0.85)';
+        tooltip.style.color = 'white';
+        tooltip.style.borderRadius = '6px';
+        tooltip.style.fontSize = '0.85rem';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.zIndex = '9999';
+        tooltip.style.display = 'none';
+        container.style.position = 'relative';
+        container.appendChild(tooltip);
+    }
+
+    // Event listeners para navegação
+    const prevBtn = container.querySelector('#cal-prev');
+    const nextBtn = container.querySelector('#cal-next');
+    const monthSelect = container.querySelector('#cal-month-select');
+    const yearSelect = container.querySelector('#cal-year-select');
+
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        calendarMonth -= 1;
+        if (calendarMonth < 0) { calendarMonth = 11; calendarYear -= 1; }
+        sessionStorage.setItem('calendarMonth', calendarMonth);
+        sessionStorage.setItem('calendarYear', calendarYear);
+        renderCalendarioUI();
+    });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        calendarMonth += 1;
+        if (calendarMonth > 11) { calendarMonth = 0; calendarYear += 1; }
+        sessionStorage.setItem('calendarMonth', calendarMonth);
+        sessionStorage.setItem('calendarYear', calendarYear);
+        renderCalendarioUI();
+    });
+    if (monthSelect) monthSelect.addEventListener('change', (e) => {
+        calendarMonth = parseInt(e.target.value, 10);
+        sessionStorage.setItem('calendarMonth', calendarMonth);
+        renderCalendarioUI();
+    });
+    if (yearSelect) yearSelect.addEventListener('change', (e) => {
+        calendarYear = parseInt(e.target.value, 10);
+        sessionStorage.setItem('calendarYear', calendarYear);
+        renderCalendarioUI();
+    });
+
+    // Tooltip handlers: delegação em células que tenham data-medicos
+    container.querySelectorAll('td[data-medicos]').forEach(td => {
+        td.addEventListener('mouseenter', (ev) => {
+            const medStr = td.getAttribute('data-medicos') || '';
+            tooltip.innerHTML = medStr ? `<strong>Médicos:</strong> ${medStr}` : 'Sem médicos disponíveis';
+            tooltip.style.display = 'block';
+            // posiciona próximo ao mouse
+            const rect = container.getBoundingClientRect();
+            const offsetX = ev.clientX - rect.left + 12;
+            const offsetY = ev.clientY - rect.top + 12;
+            tooltip.style.left = offsetX + 'px';
+            tooltip.style.top = offsetY + 'px';
+        });
+        td.addEventListener('mousemove', (ev) => {
+            const rect = container.getBoundingClientRect();
+            const offsetX = ev.clientX - rect.left + 12;
+            const offsetY = ev.clientY - rect.top + 12;
+            tooltip.style.left = offsetX + 'px';
+            tooltip.style.top = offsetY + 'px';
+        });
+        td.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+    });
+
+    // Clique em célula abre modal com detalhes (agenda)
+    container.querySelectorAll('td[data-dia]').forEach(td => {
+        td.addEventListener('click', () => {
+            const dia = td.getAttribute('data-dia');
+            const dateStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+            openCalendarDayModal(dateStr);
+        });
+    });
+}
+
+// Modal para visualizar/edit arranjos de um dia específico
+function openCalendarDayModal(dateStr) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const entriesAll = (agendaSalva || []).map((e,i) => ({item:e,index:i}));
+    let entries = entriesAll.filter(obj => String(obj.item.data).startsWith(dateStr));
+    if (usuarioLogado.perfil !== 'admin') {
+        entries = entries.filter(obj => String(obj.item.usuarioId) === String(usuarioLogado.id || usuarioLogado.usuario));
+    }
+    let rows = '';
+    if (entries.length === 0) {
+        rows = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Nenhum agendamento neste dia.</td></tr>`;
+    } else {
+        rows = entries.map(o => {
+            const a = o.item;
+            return `<tr>
+                        <td>${a.hora || ''}</td>
+                        <td>${usuarioLogado.perfil === 'admin' ? (a.nome || a.usuarioId) : ''}</td>
+                        <td>${a.medico || ''}</td>
+                        <td>${a.status || ''}</td>
+                        <td style="text-align:center;">
+                            <button class="btn-edit-day" data-index="${o.index}">Editar</button>
+                            <button class="btn-delete-day" data-index="${o.index}">Excluir</button>
+                        </td>
+                    </tr>`;
+        }).join('');
+    }
+
+    overlay.innerHTML = `
+        <div class="modal-box" role="dialog" aria-modal="true" style="max-width:600px;">
+            <h4>Agendamentos em ${dateStr}</h4>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead><tr><th>Hora</th>${usuarioLogado.perfil==='admin'?'<th>Paciente</th>':''}<th>Médico</th><th>Status</th><th>Ações</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button id="close-day-modal" class="btn btn-outline">Fechar</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.querySelector('#close-day-modal')?.addEventListener('click', close);
+
+    // eventos internas
+    overlay.querySelectorAll('.btn-delete-day').forEach(btn => btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.index);
+        if (confirm('Excluir agendamento?')) {
+            apagarAgendamento(idx);
+            // fecha e reabre para atualizar
+            close();
+            openCalendarDayModal(dateStr);
+        }
+    }));
+
+    overlay.querySelectorAll('.btn-edit-day').forEach(btn => btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.index);
+        close();
+        prepararEdicao(idx);
+    }));
 }
 
 // ==================== INICIALIZAÇÃO ====================
@@ -472,6 +1125,7 @@ function renderCalendarioUI() {
 document.addEventListener('DOMContentLoaded', () => {
     buildDynamicMenu();
     updateHeaderUser();
+    initAvatarUpload();
     
     document.getElementById('btn-logout').addEventListener('click', logout);
     
@@ -676,6 +1330,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-logout')?.addEventListener('click', logout);
+
+    initAvatarUpload();
 
     // Mostrar tela inicial
     showSection('home');

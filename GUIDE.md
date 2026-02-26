@@ -152,4 +152,4 @@ localStorage → Persiste dados
 ---
 
 **Versão**: 2.0 Stable  
-**Última atualização**: 2026
+**Última atualização**: 2024

@@ -25,9 +25,20 @@ if (!medicos) {
     localStorage.setItem('medicos', JSON.stringify(medicos));
 }
 
+// DADOS CONSTANTES
+const examesDisponiveis = [
+    { id: 1, nome: 'Hemograma', preco: 45.00, descricao: 'Análise completa do sangue' },
+    { id: 2, nome: 'Glicemia', preco: 35.00, descricao: 'Medição de açúcar no sangue' },
+    { id: 3, nome: 'Colesterol Total', preco: 55.00, descricao: 'Perfil lipídico completo' },
+    { id: 4, nome: 'TSH', preco: 60.00, descricao: 'Teste da tireoide' },
+    { id: 5, nome: 'Raio-X Tórax', preco: 120.00, descricao: 'Radiografia de tórax' },
+    { id: 6, nome: 'Ultrassom Abdômen', preco: 180.00, descricao: 'Ultrassom abdominal completo' }
+];
+
 let activeChart = null;
 let editandoIndex = null;
 let editandoMedicoIndex = null;
+let carouselInterval = null; // Para controlar o intervalo do carrossel da home
 // Estado do calendário (mês/ano) para navegação entre meses
 const hojeCalendario = new Date();
 // Tenta restaurar seleção anterior do sessionStorage (persistência entre navegações)
@@ -59,7 +70,8 @@ const contentData = {
     home: `<div id="menu-slider-container"></div>`,
     
     agenda: `<div id="agenda-container"></div>`,
-    financas: `<div id="financas-container"></div>`
+    financas: `<div id="financas-container"></div>`,
+    usuarios: `<div id="usuarios-container"></div>`
 ,
     medicos: `<div id="medicos-container"></div>`,
     marcacao: `<div id="marcacao-container"></div>`,
@@ -88,6 +100,7 @@ function buildDynamicMenu() {
         menuItems.push(
             { id: 'menu-agenda', label: 'Agenda', icon: 'fa-calendar-alt', section: 'agenda' },
             { id: 'menu-medicos', label: 'Médicos', icon: 'fa-user-md', section: 'medicos' },
+            { id: 'menu-usuarios', label: 'Usuários', icon: 'fa-users-cog', section: 'usuarios' },
             { id: 'menu-financas', label: 'Financeiro', icon: 'fa-hand-holding-usd', section: 'financas' }
         );
     } else {
@@ -221,8 +234,8 @@ function renderSolicitacoesUI() {
 
         notify('Solicitação confirmada e convertida em consulta', 'sucesso');
         renderSolicitacoesUI();
-        try { renderAgendaUI(); } catch (e) {}
-        try { renderCalendarioUI(); } catch (e) {}
+        try { renderAgendaUI(); } catch (e) { console.error('Erro ao renderizar agenda:', e); }
+        try { renderCalendarioUI(); } catch (e) { console.error('Erro ao renderizar calendário:', e); }
     }));
 
     container.querySelectorAll('.btn-view').forEach(btn => btn.addEventListener('click', () => {
@@ -437,12 +450,19 @@ function renderMenuUI() {
         updateCarousel();
     }, 5000);
 }
-
 function showSection(section) {
     const display = document.getElementById('main-display');
+
+    // Limpeza de timers/intervalos da seção anterior para evitar memory leaks
+    if (carouselInterval) {
+        clearInterval(carouselInterval);
+        carouselInterval = null;
+    }
+
     // Proteção: solicitações só para admin
     if (section === 'solicitacoes' && usuarioLogado.perfil !== 'admin') {
         notify('Acesso negado: área restrita ao administrador', 'erro');
+        // Redireciona para a home se o acesso for negado
         section = 'home';
     }
 
@@ -475,6 +495,12 @@ function showSection(section) {
         }
         if (section === 'calendario') {
             renderCalendarioUI();
+        }
+        if (section === 'solicitacoes') {
+            renderSolicitacoesUI();
+        }
+        if (section === 'usuarios') {
+            renderUsuariosUI();
         }
     }, 50);
 }
@@ -524,50 +550,6 @@ function adicionarConsulta() {
     renderAgendaUI();
 }
 
-// ---------- FUNÇÕES DE MÉDICOS ----------
-function salvarMedico() {
-    const nome = document.getElementById('med-nome').value.trim();
-    const checkboxes = Array.from(document.querySelectorAll('.med-dia'));
-    const dias = checkboxes.filter(c => c.checked).map(c => parseInt(c.value, 10));
-
-    if (!nome) { notify('Informe o nome do médico', 'erro'); return; }
-    if (dias.length === 0) { notify('Selecione pelo menos um dia', 'erro'); return; }
-
-    medicos.push({ nome, dias });
-    localStorage.setItem('medicos', JSON.stringify(medicos));
-    notify('Médico salvo com sucesso!');
-    renderMedicosTabela();
-}
-
-function renderMedicosTabela() {
-    const corpo = document.getElementById('tabela-medicos-corpo');
-    if (!corpo) return;
-    if (!medicos || medicos.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#888;">Nenhum médico cadastrado.</td></tr>`;
-        return;
-    }
-
-    const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-    corpo.innerHTML = medicos.map((m, idx) => {
-        const diasHtml = m.dias.map(d => `<span class="day-item">${dayNames[d]}</span>`).join(' ');
-        return `
-        <tr>
-            <td><strong>${m.nome}</strong></td>
-            <td>${diasHtml}</td>
-            <td style="text-align:center;"><button class="btn-delete" onclick="apagarMedico(${idx})"><i class="fas fa-trash"></i></button></td>
-        </tr>
-    `
-    }).join('');
-}
-
-function apagarMedico(index) {
-    if (!confirm(`Excluir o médico ${medicos[index].nome}?`)) return;
-    medicos.splice(index, 1);
-    localStorage.setItem('medicos', JSON.stringify(medicos));
-    notify('Médico removido', 'erro');
-    renderMedicosTabela();
-}
-
 // Preenche select de médicos baseado na data. Se data vazia, mostra todos.
 function preencherMedicosPorData() {
     const sel = document.getElementById('medico-select');
@@ -599,53 +581,145 @@ function renderMarcacaoUI() {
     const minhasMarcacoes = agendaSalva.filter(ag => ag.usuarioId === usuarioLogado.id);
 
     container.innerHTML = `
-        <div class="card">
-            <h3>Agendar Consulta</h3>
+        <!-- SEÇÃO DE AGENDAMENTO -->
+        <div class="card" style="border-top: 5px solid var(--primary);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                <i class="fas fa-calendar-check" style="font-size: 1.8rem; color: var(--primary);"></i>
+                <h3 style="margin: 0;">Agendar Nova Consulta</h3>
+            </div>
             <div class="agenda-form">
-                <div class="form-group">
-                    <label for="marcacao-data">Data da Consulta:</label>
-                    <input type="date" id="marcacao-data">
+                <!-- Dados básicos em um grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <div class="form-group">
+                        <label for="marcacao-data" style="display: block; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Data da Consulta <span style="color: var(--danger);">*</span></label>
+                        <input type="date" id="marcacao-data" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
+                    </div>
+                    <div class="form-group">
+                        <label for="marcacao-medico" style="display: block; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Médico Responsável <span style="color: var(--danger);">*</span></label>
+                        <select id="marcacao-medico" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
+                            <option value="">-- Selecione Médico --</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="marcacao-medico">Médico:</label>
-                    <select id="marcacao-medico">
-                        <option value="">-- Selecione Médico --</option>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label for="marcacao-queixa" style="display: block; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Queixa Principal <span style="color: var(--danger);">*</span></label>
+                    <input type="text" id="marcacao-queixa" placeholder="Descreva o motivo da consulta" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
+                </div>
+
+                <!-- Seleção de exames -->
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: var(--text-main); margin-bottom: 12px; font-size: 1rem;">
+                        <i class="fas fa-flask" style="color: var(--primary); margin-right: 6px;"></i>Deseja solicitar exames?
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                        ${examesDisponiveis.map(ex => `
+                            <div style="border: 2px solid var(--border); padding: 14px; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" class="exam-card" data-exam-id="${ex.id}">
+                                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                    <input type="checkbox" id="exam-${ex.id}" value="${ex.id}" class="marcacao-exam" data-exam='${JSON.stringify(ex).replace(/'/g, "&quot;")}' style="margin-top: 4px; cursor: pointer;">
+                                    <div style="flex: 1;">
+                                        <label for="exam-${ex.id}" style="cursor: pointer; display: block; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">${ex.nome}</label>
+                                        <p style="color: var(--text-sub); font-size: 0.85rem; margin: 4px 0;">R$ <strong style="color: var(--primary); font-size: 1rem;">${ex.preco.toFixed(2)}</strong></p>
+                                        <p style="color: var(--text-sub); font-size: 0.8rem; margin: 4px 0;">${ex.descricao}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Resumo exames selecionados -->
+                <div class="form-group" id="exames-selecionados-info" style="display: none; margin-bottom: 24px; padding: 14px; background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-left: 4px solid var(--primary); border-radius: 6px;">
+                    <label style="display: block; font-weight: 600; color: var(--text-main); margin-bottom: 8px;"><i class="fas fa-check-circle" style="color: var(--success); margin-right: 6px;"></i>Exames Selecionados:</label>
+                    <div id="exames-list-info" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.6;">
+                        <!-- preenchido dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Pagamento -->
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label for="marcacao-pagamento" style="display: block; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
+                        <i class="fas fa-credit-card" style="color: var(--primary); margin-right: 6px;"></i>Forma de Pagamento (se houver exames)
+                    </label>
+                    <select id="marcacao-pagamento" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
+                        <option value="">-- Selecione se tiver exames --</option>
+                        <option value="PIX">PIX</option>
+                        <option value="CARTAO_CREDITO">Cartão de Crédito</option>
+                        <option value="CARTAO_DEBITO">Cartão de Débito</option>
+                        <option value="PLANO_SAUDE">Plano de Saúde</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="marcacao-queixa">Queixa Principal:</label>
-                    <input type="text" id="marcacao-queixa" placeholder="Descreva o motivo da consulta">
-                </div>
-                <div class="form-actions">
-                    <button class="btn btn-primary" id="btn-marcar">Agendar</button>
+
+                <!-- Botão de ação -->
+                <div class="form-actions" style="display: flex; gap: 12px;">
+                    <button class="btn btn-primary" id="btn-marcar" style="flex: 1; padding: 12px 24px; font-size: 1rem; font-weight: 600; border-radius: 6px;">
+                        <i class="fas fa-check" style="margin-right: 6px;"></i>Confirmar Agendamento
+                    </button>
                 </div>
             </div>
         </div>
         
-        <div class="card">
-            <h3>Minhas Marcações (${minhasMarcacoes.length})</h3>
-            ${minhasMarcacoes.length === 0 ? '<p style="color: var(--text-sub);">Nenhuma marcação ainda</p>' : `
-                <table class="med-table">
-                    <thead>
-                        <tr><th>Data</th><th>Médico</th><th>Queixa</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                        ${minhasMarcacoes.map(m => `
-                            <tr>
-                                <td>${m.data}</td>
-                                <td>${m.medico}</td>
-                                <td>${m.queixa}</td>
-                                <td><span class="badge badge-${m.status === 'Confirmado' ? 'success' : m.status === 'Pendente' ? 'warning' : 'danger'}">${m.status}</span></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+        <!-- SEÇÃO DE HISTÓRICO -->
+        <div class="card" style="margin-top: 30px; border-top: 5px solid var(--success);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <i class="fas fa-history" style="font-size: 1.8rem; color: var(--success);"></i>
+                <h3 style="margin: 0;">Minhas Marcações (${minhasMarcacoes.length})</h3>
+            </div>
+            ${minhasMarcacoes.length === 0 ? `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <i class="fas fa-inbox" style="font-size: 3rem; color: var(--border); margin-bottom: 12px;"></i>
+                    <p style="color: var(--text-sub); font-size: 1rem;">Nenhuma marcação realizada ainda. Agende uma consulta acima!</p>
+                </div>
+            ` : `
+                <div style="display: grid; gap: 12px;">
+                    ${minhasMarcacoes.map(m => `
+                        <div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: white; display: grid; grid-template-columns: 150px 1fr 120px 100px; gap: 16px; align-items: center;">
+                            <div>
+                                <p style="color: var(--text-sub); font-size: 0.85rem; margin: 0 0 4px 0;">Data</p>
+                                <p style="font-weight: 600; color: var(--text-main); margin: 0;">${m.data}</p>
+                            </div>
+                            <div>
+                                <p style="color: var(--text-sub); font-size: 0.85rem; margin: 0 0 4px 0;">Médico & Queixa</p>
+                                <p style="font-weight: 600; color: var(--text-main); margin: 0;">${m.medico}</p>
+                                <p style="color: var(--text-sub); font-size: 0.9rem; margin: 4px 0 0 0;">${m.queixa}</p>
+                            </div>
+                            <div>
+                                <p style="color: var(--text-sub); font-size: 0.85rem; margin: 0 0 4px 0;">Status</p>
+                                <span class="badge badge-${m.status === 'Confirmado' ? 'success' : m.status === 'Pendente' ? 'warning' : 'danger'}" style="display: inline-block;">${m.status}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             `}
         </div>
     `;
 
     const dataInput = document.getElementById('marcacao-data');
     dataInput?.addEventListener('change', () => preencherMedicosMarcacao());
+
+    // Controlar checkbox de exames e atualizar lista
+    const examesCheckboxes = container.querySelectorAll('.marcacao-exam');
+    const infoDiv = container.querySelector('#exames-selecionados-info');
+    const infoList = container.querySelector('#exames-list-info');
+    const paymentSelect = container.querySelector('#marcacao-pagamento');
+
+    examesCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const selecionados = Array.from(examesCheckboxes).filter(c => c.checked);
+            if (selecionados.length > 0) {
+                infoDiv.style.display = 'block';
+                paymentSelect.value = '';
+                const list = selecionados.map(c => {
+                    const exam = JSON.parse(c.dataset.exam);
+                    return `${exam.nome} (R$ ${exam.preco.toFixed(2)})`;
+                }).join(' | ');
+                infoList.textContent = list;
+            } else {
+                infoDiv.style.display = 'none';
+                paymentSelect.value = '';
+            }
+        });
+    });
 
     document.getElementById('btn-marcar')?.addEventListener('click', () => {
         const data = document.getElementById('marcacao-data').value;
@@ -657,6 +731,16 @@ function renderMarcacaoUI() {
             return;
         }
 
+        // Verificar se há exames selecionados
+        const selecionados = Array.from(examesCheckboxes).filter(c => c.checked);
+        const pagamento = container.querySelector('#marcacao-pagamento').value;
+
+        if (selecionados.length > 0 && !pagamento) {
+            alert('Selecione uma forma de pagamento para os exames!');
+            return;
+        }
+
+        // Salvar consulta
         const novaAgenda = {
             id: Date.now(),
             usuarioId: usuarioLogado.id,
@@ -666,6 +750,28 @@ function renderMarcacaoUI() {
         };
 
         agendaSalva.push(novaAgenda);
+
+        // Salvar exames selecionados
+        if (selecionados.length > 0) {
+            const examesSolicitados = JSON.parse(localStorage.getItem('examesSolicitados')) || [];
+            selecionados.forEach(cb => {
+                const exam = JSON.parse(cb.dataset.exam);
+                const pedido = {
+                    id: Date.now() + Math.random(),
+                    usuarioId: usuarioLogado.id || usuarioLogado.usuario,
+                    exameId: exam.id,
+                    exameNome: exam.nome,
+                    data: data,
+                    hora: '10:00',
+                    pagamento: pagamento,
+                    status: 'Pendente',
+                    criadoEm: new Date().toISOString()
+                };
+                examesSolicitados.push(pedido);
+            });
+            localStorage.setItem('examesSolicitados', JSON.stringify(examesSolicitados));
+        }
+
         localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
         notify('Consulta agendada com sucesso!', 'sucesso');
         renderMarcacaoUI();
@@ -695,40 +801,30 @@ function renderExamesUI() {
     const container = document.getElementById('exames-container');
     if (!container) return;
 
-    const examesDisponiveis = [
-        { id: 1, nome: 'Hemograma', preco: 45.00, descricao: 'Análise completa do sangue' },
-        { id: 2, nome: 'Glicemia', preco: 35.00, descricao: 'Medição de açúcar no sangue' },
-        { id: 3, nome: 'Colesterol Total', preco: 55.00, descricao: 'Perfil lipídico completo' },
-        { id: 4, nome: 'TSH', preco: 60.00, descricao: 'Teste da tireoide' },
-        { id: 5, nome: 'Raio-X Tórax', preco: 120.00, descricao: 'Radiografia de tórax' },
-        { id: 6, nome: 'Ultrassom Abdômen', preco: 180.00, descricao: 'Ultrassom abdominal completo' }
-    ];
-
     container.innerHTML = `
         <div class="card">
-            <h3>Exames Disponíveis</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                <i class="fas fa-flask-vial" style="font-size: 1.8rem; color: var(--primary);"></i>
+                <h3 style="margin: 0;">Tabela de Preços - Exames</h3>
+            </div>
+            <p style="color: var(--text-sub); margin-bottom: 20px;">Solicite exames durante o agendamento de sua consulta na aba <strong>Marcação</strong>.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                 ${examesDisponiveis.map(ex => `
-                    <div class="med-card" style="padding: 15px;">
-                        <h4>${ex.nome}</h4>
-                        <p style="color: var(--text-sub); font-size: 0.9rem; margin: 10px 0;">${ex.descricao}</p>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-                            <span style="font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-top:4px;">R$ ${ex.preco.toFixed(2)}</span>
-                            <button class="btn btn-primary" data-exam-id="${ex.id}">Solicitar</button>
+                    <div style="padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: white; transition: all 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+                        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
+                            <i class="fas fa-microscope" style="font-size: 1.4rem; color: var(--primary); margin-top: 2px;"></i>
+                            <h4 style="margin: 0; color: var(--text-main);">${ex.nome}</h4>
+                        </div>
+                        <p style="color: var(--text-sub); font-size: 0.9rem; margin: 10px 0; line-height: 1.5;">${ex.descricao}</p>
+                        <div style="padding-top: 12px; border-top: 1px solid var(--border);">
+                            <p style="margin: 0; color: var(--text-sub); font-size: 0.85rem;">Valor:</p>
+                            <p style="font-size: 1.4rem; font-weight: bold; color: var(--primary); margin: 4px 0 0 0;">R$ ${ex.preco.toFixed(2)}</p>
                         </div>
                     </div>
                 `).join('')}
             </div>
         </div>
     `;
-
-    document.querySelectorAll('[data-exam-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const exId = parseInt(btn.dataset.examId);
-            const exame = examesDisponiveis.find(e => e.id === exId);
-            openExamRequestModal(exame);
-        });
-    });
 }
 
 // Abre modal para o usuário escolher data, hora e forma de pagamento para o exame
@@ -1133,78 +1229,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-function carregarTabela() {
-    const corpo = document.getElementById('tabela-agenda-corpo');
-    if(!corpo) return;
-
-    if (agendaSalva.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#888;">Nenhum agendamento cadastrado.</td></tr>`;
-        return;
-    }
-
-    corpo.innerHTML = agendaSalva.map((i, index) => {
-        let statusColor = "#f39c12"; // Pendente
-        if(i.status === 'Concluído') statusColor = "#27ae60"; 
-        if(i.status === 'Cancelado') statusColor = "#e74c3c"; 
-
-        return `
-        <tr style="border-bottom: 1px solid var(--border);">
-            <td style="padding:12px; font-size: 0.85rem;">${i.data}</td>
-            <td style="padding:12px;"><strong>${i.nome}</strong></td>
-            <td style="padding:12px; font-size: 0.85rem; color:#666;">${i.medico}</td>
-            <td style="padding:12px;">
-                <select class="status-select" data-index="${index}" style="
-                    padding: 4px 8px; border-radius: 4px; border: 1px solid ${statusColor};
-                    color: ${statusColor}; font-weight: bold; background: white; cursor: pointer;
-                ">
-                    <option value="Pendente" ${i.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                    <option value="Concluído" ${i.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
-                    <option value="Cancelado" ${i.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                </select>
-            </td>
-            <td style="padding:12px; text-align:center;">
-                <button class="btn-edit-agenda" data-index="${index}" style="padding:5px 10px; background:#f39c12; border:none; color:white; border-radius:4px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                <button class="btn-delete-agenda" data-index="${index}" style="padding:5px 10px; background:#e74c3c; border:none; color:white; border-radius:4px; cursor:pointer;"><i class="fas fa-trash"></i></button>
-            </td>
-        </tr>
-    `}).reverse().join('');
-    
-    // Adicionar event listeners aos selects e botões de ação
-    document.querySelectorAll('.status-select').forEach(sel => {
-        sel.addEventListener('change', () => {
-            const idx = parseInt(sel.dataset.index);
-            const realIdx = (agendaSalva.length - 1) - idx;
-            agendaSalva[realIdx].status = sel.value;
-            localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
-            notify(`Status alterado para ${sel.value}`);
-            carregarTabela();
-        });
-    });
-    
-    document.querySelectorAll('.btn-edit-agenda').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const idx = parseInt(btn.dataset.index);
-            const realIdx = (agendaSalva.length - 1) - idx;
-            prepararEdicao(realIdx);
-        });
-    });
-    
-    document.querySelectorAll('.btn-delete-agenda').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const idx = parseInt(btn.dataset.index);
-            const realIdx = (agendaSalva.length - 1) - idx;
-            apagarAgendamento(realIdx);
-        });
-    });
-}
-
-function alterarStatus(index, novoStatus) {
-    agendaSalva[index].status = novoStatus;
-    localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
-    notify(`Status alterado para ${novoStatus}`);
-    carregarTabela();
-}
-
 function prepararEdicao(index) {
     editandoIndex = index;
     const item = agendaSalva[index];
@@ -1229,11 +1253,6 @@ function prepararEdicao(index) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function cancelarEdicao() {
-    editandoIndex = null;
-    showSection('agenda');
-}
-
 function apagarAgendamento(index) {
     if (confirm(`Excluir o agendamento de ${agendaSalva[index].nome}?`)) {
         agendaSalva.splice(index, 1);
@@ -1242,6 +1261,66 @@ function apagarAgendamento(index) {
         carregarTabela();
         atualizarDashboardHome();
     }
+}
+function carregarTabela() {
+    const corpo = document.getElementById('tabela-agenda-corpo');
+    if(!corpo) return;
+
+    if (agendaSalva.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#888;">Nenhum agendamento cadastrado.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    // Itera do mais recente para o mais antigo, simplificando a lógica de índice
+    for (let index = agendaSalva.length - 1; index >= 0; index--) {
+        const i = agendaSalva[index];
+        let statusColor = "#f39c12"; // Pendente
+        if(i.status === 'Concluído') statusColor = "#27ae60"; 
+        if(i.status === 'Cancelado') statusColor = "#e74c3c"; 
+
+        html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding:12px; font-size: 0.85rem;">${i.data}</td>
+            <td style="padding:12px;"><strong>${i.nome}</strong></td>
+            <td style="padding:12px; font-size: 0.85rem; color:#666;">${i.medico}</td>
+            <td style="padding:12px;">
+                <select class="status-select" data-index="${index}" style="
+                    padding: 4px 8px; border-radius: 4px; border: 1px solid ${statusColor};
+                    color: ${statusColor}; font-weight: bold; background: white; cursor: pointer;
+                ">
+                    <option value="Pendente" ${i.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                    <option value="Concluído" ${i.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
+                    <option value="Cancelado" ${i.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                </select>
+            </td>
+            <td style="padding:12px; text-align:center;">
+                <button class="btn-edit-agenda" data-index="${index}" style="padding:5px 10px; background:#f39c12; border:none; color:white; border-radius:4px; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                <button class="btn-delete-agenda" data-index="${index}" style="padding:5px 10px; background:#e74c3c; border:none; color:white; border-radius:4px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+        `;
+    }
+    corpo.innerHTML = html;
+    
+    // Adicionar event listeners aos selects e botões de ação
+    document.querySelectorAll('.status-select').forEach(sel => {
+        sel.addEventListener('change', () => {
+            const idx = parseInt(sel.dataset.index);
+            agendaSalva[idx].status = sel.value;
+            localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
+            notify(`Status alterado para ${sel.value}`);
+            carregarTabela();
+        });
+    });
+    
+    document.querySelectorAll('.btn-edit-agenda').forEach(btn => {
+        btn.addEventListener('click', () => prepararEdicao(parseInt(btn.dataset.index)));
+    });
+    
+    document.querySelectorAll('.btn-delete-agenda').forEach(btn => {
+        btn.addEventListener('click', () => apagarAgendamento(parseInt(btn.dataset.index)));
+    });
 }
 
 // --- FINANCEIRO ---
@@ -1321,21 +1400,6 @@ function renderFinanceChart() {
         options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
     });
 }
-
-// Inicialização: tratar navegação da sidebar e botão de logout sem usar handlers inline
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.sidebar ul li[role="button"]').forEach(el => {
-        el.addEventListener('click', () => showSection(el.dataset.section));
-        el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showSection(el.dataset.section); } });
-    });
-
-    document.getElementById('btn-logout')?.addEventListener('click', logout);
-
-    initAvatarUpload();
-
-    // Mostrar tela inicial
-    showSection('home');
-});
 
 // ========== RENDERIZAÇÃO DE AGENDA ==========
 function renderAgendaUI() {
@@ -1500,6 +1564,91 @@ function renderMedicosUI() {
     renderMedicosTabela();
 }
 
+// ========== RENDERIZAÇÃO DE USUÁRIOS (ADMIN) ==========
+function renderUsuariosUI() {
+    const container = document.getElementById('usuarios-container');
+    if (!container) return;
+
+    const allUsers = JSON.parse(localStorage.getItem('usuarios')) || [];
+
+    const html = `
+        <div class="card">
+            <h3><i class="fas fa-users-cog"></i> Gerenciamento de Usuários</h3>
+            <p style="color: var(--text-sub); margin-bottom: 20px;">Altere o avatar de qualquer usuário do sistema.</p>
+            <div style="overflow-x: auto;">
+                <table style="width:100%; border-collapse: collapse; min-width: 600px;">
+                    <thead>
+                        <tr style="text-align:left; background: #f8f9fa;">
+                            <th style="padding:12px;">Avatar</th>
+                            <th style="padding:12px;">Nome</th>
+                            <th style="padding:12px;">Usuário</th>
+                            <th style="padding:12px;">Perfil</th>
+                            <th style="padding:12px; text-align:center;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${allUsers.map(user => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding:8px;">
+                                    <img src="${user.avatar || `https://i.pravatar.cc/150?u=${user.usuario}`}" alt="Avatar de ${user.nome}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                                </td>
+                                <td style="padding:8px;"><strong>${user.nome}</strong></td>
+                                <td style="padding:8px;">${user.usuario}</td>
+                                <td style="padding:8px;"><span class="badge-${user.perfil === 'admin' ? 'despesa' : 'info'}">${user.perfil}</span></td>
+                                <td style="padding:8px; text-align:center;">
+                                    <button class="btn-edit-avatar" data-userid="${user.id || user.usuario}">Alterar Avatar</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Input de arquivo oculto para ser acionado pelos botões -->
+            <input type="file" id="admin-avatar-input" accept="image/*" style="display:none;" />
+        </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Adicionar event listeners
+    const fileInput = container.querySelector('#admin-avatar-input');
+    let targetUserId = null;
+
+    container.querySelectorAll('.btn-edit-avatar').forEach(btn => {
+        btn.addEventListener('click', () => {
+            targetUserId = btn.dataset.userid;
+            fileInput.click(); // Aciona o input de arquivo
+        });
+    });
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (file && targetUserId) {
+            handleAdminAvatarChange(file, targetUserId);
+        }
+    });
+}
+
+function handleAdminAvatarChange(file, userId) {
+    if (file.size > 2 * 1024 * 1024) { notify('Arquivo muito grande (máx 2MB)', 'erro'); return; }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const dataUrl = reader.result;
+        const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+        const userIndex = usuarios.findIndex(u => String(u.id) === String(userId) || u.usuario === userId);
+
+        if (userIndex !== -1) {
+            usuarios[userIndex].avatar = dataUrl;
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+            if (String(usuarios[userIndex].id) === String(usuarioLogado.id)) { usuarioLogado.avatar = dataUrl; sessionStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado)); updateHeaderUser(); }
+            notify(`Avatar do usuário '${usuarios[userIndex].nome}' atualizado!`, 'sucesso');
+            renderUsuariosUI();
+        } else { notify('Usuário não encontrado para atualizar o avatar.', 'erro'); }
+    };
+    reader.readAsDataURL(file);
+}
+
 // ========== FUNÇÕES DE SUPORTE (AGENDA) ==========
 function cancelarEdicao() {
     editandoIndex = null;
@@ -1576,26 +1725,4 @@ function renderMedicosTabela() {
 function cancelarEdicaoMedico() {
     editandoMedicoIndex = null;
     renderMedicosUI();
-}
-
-// Preenche select de médicos baseado na data. Se data vazia, mostra todos.
-function preencherMedicosPorData() {
-    const sel = document.getElementById('medico-select');
-    if(!sel) return;
-    const dataVal = document.getElementById('data')?.value;
-    let options = [];
-    const dayNamesFull = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-
-    if (!medicos) medicos = [];
-
-    if (!dataVal) {
-        options = medicos.map(m => ({ value: m.nome, label: m.nome }));
-    } else {
-        const dt = new Date(dataVal);
-        const weekday = dt.getDay();
-        options = medicos.filter(m => m.dias.includes(weekday)).map(m => ({ value: m.nome, label: `${m.nome} — ${dayNamesFull[weekday]}` }));
-    }
-
-    // Remonta select
-    sel.innerHTML = `<option value="">-- Selecione Médico --</option>` + options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
 }

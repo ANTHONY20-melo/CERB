@@ -38,23 +38,23 @@
 
             <div class="auth-form active" id="form-login">
                 <label for="user" class="sr-only">Usuário</label>
-                <input type="text" id="user" name="username" autocomplete="off" placeholder="Seu usuário" style="width:100%; margin-bottom:12px;">
+                <input type="text" id="user" name="username" autocomplete="username" placeholder="Seu usuário" style="width:100%; margin-bottom:12px;">
                 <label for="pass" class="sr-only">Senha</label>
-                <input type="password" id="pass" name="password" autocomplete="new-password" placeholder="Senha" style="width:100%; margin-bottom:15px;">
+                <input type="password" id="pass" name="password" autocomplete="current-password" placeholder="Senha" style="width:100%; margin-bottom:15px;">
                 <button id="btn-login" type="button" style="width:100%">Acessar Sistema</button>
             </div>
 
             <div class="auth-form" id="form-registro">
                 <label for="reg-nome" class="sr-only">Nome Completo</label>
-                <input type="text" id="reg-nome" placeholder="Nome Completo" style="width:100%; margin-bottom:12px;">
+                <input type="text" id="reg-nome" autocomplete="name" placeholder="Nome Completo" style="width:100%; margin-bottom:12px;">
                 <label for="reg-email" class="sr-only">Email</label>
-                <input type="email" id="reg-email" placeholder="Email" style="width:100%; margin-bottom:12px;">
+                <input type="email" id="reg-email" autocomplete="email" placeholder="Email" style="width:100%; margin-bottom:12px;">
                 <label for="reg-user" class="sr-only">Usuário</label>
-                <input type="text" id="reg-user" placeholder="Usuário" style="width:100%; margin-bottom:12px;">
+                <input type="text" id="reg-user" autocomplete="username" placeholder="Usuário" style="width:100%; margin-bottom:12px;">
                 <label for="reg-pass" class="sr-only">Senha</label>
-                <input type="password" id="reg-pass" placeholder="Senha" style="width:100%; margin-bottom:12px;">
+                <input type="password" id="reg-pass" autocomplete="new-password" placeholder="Senha" style="width:100%; margin-bottom:12px;">
                 <label for="reg-pass2" class="sr-only">Confirmar Senha</label>
-                <input type="password" id="reg-pass2" placeholder="Confirmar Senha" style="width:100%; margin-bottom:15px;">
+                <input type="password" id="reg-pass2" autocomplete="new-password" placeholder="Confirmar Senha" style="width:100%; margin-bottom:15px;">
                 <button id="btn-registro" type="button" style="width:100%;">Criar Conta</button>
             </div>
         </div>

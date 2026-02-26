@@ -1,0 +1,323 @@
+/* ===== RESPONSIVIDADE MOBILE ===== */
+@media (max-width: 768px) {
+    body { 
+        flex-direction: column; 
+        height: 100vh;
+        width: 100vw;
+    }
+    
+    .sidebar { 
+        width: 100%; 
+        height: auto;
+        padding: 12px 0;
+        flex-direction: row;
+        align-items: center;
+        overflow-x: auto;
+        border-bottom: 1px solid #34495e;
+    }
+    
+    .logo { 
+        padding: 0 15px;
+        border-bottom: none;
+        border-right: 1px solid #34495e;
+        margin-bottom: 0;
+        margin-right: 10px;
+    }
+    
+    .logo h2 { 
+        font-size: 1.1rem;
+    }
+    
+    .sidebar ul {
+        display: flex;
+        gap: 0;
+        flex: 1;
+        overflow-x: auto;
+    }
+    
+    .sidebar ul li {
+        padding: 12px 15px;
+        gap: 8px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .sidebar ul li i {
+        font-size: 1rem;
+    }
+    
+    header {
+        height: 60px;
+        padding: 0 15px;
+        gap: 10px;
+    }
+    
+    #page-title {
+        font-size: 1.1rem;
+    }
+    
+    .header-right {
+        gap: 10px;
+    }
+    
+    .user-profile {
+        padding-right: 10px;
+        gap: 8px;
+    }
+    
+    .user-profile span {
+        display: none;
+    }
+    
+    .user-profile img {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .btn-logout {
+        padding: 7px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .content {
+        padding: 15px;
+        overflow-y: auto;
+    }
+    
+    .main-container {
+        height: calc(100vh - 60px);
+    }
+    
+    .card {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .card h3 {
+        font-size: 1.05rem;
+        margin-bottom: 10px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-card i {
+        font-size: 2rem;
+        margin-right: 12px;
+    }
+    
+    .stat-card h3 {
+        font-size: 1.3rem;
+    }
+    
+    .agenda-form,
+    .finance-form,
+    .med-form {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .form-group label {
+        font-size: 0.8rem;
+    }
+    
+    .form-group input,
+    .form-group select {
+        padding: 10px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .form-actions .btn-primary,
+    .form-actions .btn-outline {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .med-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .finance-header-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .med-table {
+        font-size: 0.85rem;
+    }
+    
+    .med-table thead th {
+        padding: 8px;
+    }
+    
+    .med-table td {
+        padding: 8px;
+    }
+    
+    .med-table .btn-edit,
+    .med-table .btn-delete {
+        padding: 4px 6px;
+        font-size: 0.75rem;
+    }
+    
+    .day-item {
+        padding: 4px 6px;
+        font-size: 0.75rem;
+        gap: 3px;
+    }
+    
+    .days-list {
+        gap: 4px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+    
+    .chart-container-small {
+        height: 200px;
+    }
+    
+    table {
+        font-size: 0.85rem;
+    }
+    
+    table th,
+    table td {
+        padding: 8px;
+    }
+    
+    .login-card {
+        max-width: 90%;
+        padding: 30px 20px;
+    }
+    
+    .login-card input {
+        padding: 10px;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    
+    button {
+        padding: 10px 16px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        padding: 10px 0;
+    }
+    
+    .logo {
+        padding: 0 10px;
+        margin-right: 5px;
+    }
+    
+    .logo h2 {
+        font-size: 0.9rem;
+    }
+    
+    .sidebar ul li {
+        padding: 10px 12px;
+        font-size: 0.75rem;
+        gap: 6px;
+    }
+    
+    .sidebar ul li i {
+        font-size: 0.9rem;
+    }
+    
+    header {
+        height: 55px;
+        padding: 0 10px;
+    }
+    
+    #page-title {
+        font-size: 1rem;
+    }
+    
+    .btn-logout {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .content {
+        padding: 12px;
+    }
+    
+    .card {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    
+    .card h3 {
+        font-size: 0.95rem;
+    }
+    
+    .form-group input,
+    .form-group select {
+        padding: 9px 8px;
+        font-size: 0.85rem;
+    }
+    
+    .form-group label {
+        font-size: 0.75rem;
+    }
+    
+    .med-card .med-form {
+        gap: 6px;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+    
+    .chart-container-small {
+        height: 150px;
+    }
+    
+    table {
+        font-size: 0.75rem;
+    }
+    
+    table th,
+    table td {
+        padding: 6px;
+    }
+    
+    .day-item {
+        padding: 3px 5px;
+        font-size: 0.7rem;
+    }
+    
+    .login-card {
+        max-width: 95%;
+        padding: 25px 15px;
+    }
+    
+    .login-card input {
+        padding: 9px;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .user-profile img {
+        width: 30px;
+        height: 30px;
+    }
+}

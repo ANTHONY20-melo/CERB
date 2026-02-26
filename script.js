@@ -1,5 +1,6 @@
 // PROTEÇÃO: Se não estiver logado, volta para o login
-if (sessionStorage.getItem('isAdmin') !== 'true') {
+let usuarioLogado = JSON.parse(sessionStorage.getItem('usuarioLogado'));
+if (!usuarioLogado) {
     window.location.href = "login.html";
 }
 
@@ -67,13 +68,57 @@ const contentData = {
     agenda: `<div id="agenda-container"></div>`,
     financas: `<div id="financas-container"></div>`
 ,
-    medicos: `<div id="medicos-container"></div>`
+    medicos: `<div id="medicos-container"></div>`,
+    marcacao: `<div id="marcacao-container"></div>`,
+    exames: `<div id="exames-container"></div>`,
+    calendario: `<div id="calendario-container"></div>`
 };
 
 // --- NAVEGAÇÃO ---
 function logout() {
-    sessionStorage.removeItem('isAdmin');
+    sessionStorage.removeItem('usuarioLogado');
     window.location.href = "login.html";
+}
+
+function buildDynamicMenu() {
+    const menu = document.querySelector('.sidebar nav ul');
+    menu.innerHTML = '';
+
+    const menuItems = [
+        { id: 'menu-home', label: 'Dashboard', icon: 'fa-chart-line', section: 'home' }
+    ];
+
+    if (usuarioLogado.perfil === 'admin') {
+        menuItems.push(
+            { id: 'menu-agenda', label: 'Agenda', icon: 'fa-calendar-alt', section: 'agenda' },
+            { id: 'menu-medicos', label: 'Médicos', icon: 'fa-user-md', section: 'medicos' },
+            { id: 'menu-financas', label: 'Financeiro', icon: 'fa-hand-holding-usd', section: 'financas' }
+        );
+    } else {
+        menuItems.push(
+            { id: 'menu-marcacao', label: 'Marcação', icon: 'fa-bookmark', section: 'marcacao' },
+            { id: 'menu-exames', label: 'Exames', icon: 'fa-flask', section: 'exames' },
+            { id: 'menu-calendario', label: 'Calendário', icon: 'fa-calendar', section: 'calendario' }
+        );
+    }
+
+    menuItems.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.id = item.id;
+        li.role = 'button';
+        li.tabIndex = 0;
+        li.setAttribute('data-section', item.section);
+        if (index === 0) li.classList.add('active');
+        li.innerHTML = `<i class="fas ${item.icon}"></i> ${item.label}`;
+        li.addEventListener('click', () => showSection(item.section));
+        li.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') showSection(item.section); });
+        menu.appendChild(li);
+    });
+}
+
+function updateHeaderUser() {
+    document.getElementById('user-name').textContent = usuarioLogado.nome;
+    document.getElementById('user-avatar').src = `https://i.pravatar.cc/150?u=${usuarioLogado.usuario}`;
 }
 
 function showSection(section) {
@@ -96,6 +141,15 @@ function showSection(section) {
         }
         if (section === 'financas') {
             renderFinancasUI();
+        }
+        if (section === 'marcacao') {
+            renderMarcacaoUI();
+        }
+        if (section === 'exames') {
+            renderExamesUI();
+        }
+        if (section === 'calendario') {
+            renderCalendarioUI();
         }
     }, 50);
 }
@@ -210,6 +264,219 @@ function preencherMedicosPorData() {
     // Remonta select
     sel.innerHTML = `<option value="">-- Selecione Médico --</option>` + options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
 }
+
+// ==================== NOVOS MENUS PARA USUÁRIOS COMUNS ====================
+
+function renderMarcacaoUI() {
+    const container = document.getElementById('marcacao-container');
+    if (!container) return;
+
+    const minhasMarcacoes = agendaSalva.filter(ag => ag.usuarioId === usuarioLogado.id);
+
+    container.innerHTML = `
+        <div class="card">
+            <h3>Agendar Consulta</h3>
+            <div class="agenda-form">
+                <div class="form-group">
+                    <label for="marcacao-data">Data da Consulta:</label>
+                    <input type="date" id="marcacao-data">
+                </div>
+                <div class="form-group">
+                    <label for="marcacao-medico">Médico:</label>
+                    <select id="marcacao-medico">
+                        <option value="">-- Selecione Médico --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="marcacao-queixa">Queixa Principal:</label>
+                    <input type="text" id="marcacao-queixa" placeholder="Descreva o motivo da consulta">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" id="btn-marcar">Agendar</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>Minhas Marcações (${minhasMarcacoes.length})</h3>
+            ${minhasMarcacoes.length === 0 ? '<p style="color: var(--text-sub);">Nenhuma marcação ainda</p>' : `
+                <table class="med-table">
+                    <thead>
+                        <tr><th>Data</th><th>Médico</th><th>Queixa</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        ${minhasMarcacoes.map(m => `
+                            <tr>
+                                <td>${m.data}</td>
+                                <td>${m.medico}</td>
+                                <td>${m.queixa}</td>
+                                <td><span class="badge badge-${m.status === 'Confirmado' ? 'success' : m.status === 'Pendente' ? 'warning' : 'danger'}">${m.status}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `}
+        </div>
+    `;
+
+    const dataInput = document.getElementById('marcacao-data');
+    dataInput?.addEventListener('change', () => preencherMedicosMarcacao());
+
+    document.getElementById('btn-marcar')?.addEventListener('click', () => {
+        const data = document.getElementById('marcacao-data').value;
+        const medico = document.getElementById('marcacao-medico').value;
+        const queixa = document.getElementById('marcacao-queixa').value;
+
+        if (!data || !medico || !queixa) {
+            alert('Preencha todos os campos!');
+            return;
+        }
+
+        const novaAgenda = {
+            id: Date.now(),
+            usuarioId: usuarioLogado.id,
+            data, medico, queixa,
+            status: 'Pendente',
+            dataAgendamento: new Date().toLocaleDateString()
+        };
+
+        agendaSalva.push(novaAgenda);
+        localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
+        notify('Consulta agendada com sucesso!', 'sucesso');
+        renderMarcacaoUI();
+    });
+}
+
+function preencherMedicosMarcacao() {
+    const sel = document.getElementById('marcacao-medico');
+    if (!sel) return;
+    const dataVal = document.getElementById('marcacao-data').value;
+    let options = [];
+
+    if (!medicos) medicos = [];
+
+    if (!dataVal) {
+        options = medicos.map(m => ({ value: m.nome, label: m.nome }));
+    } else {
+        const dt = new Date(dataVal);
+        const weekday = dt.getDay();
+        options = medicos.filter(m => m.dias.includes(weekday)).map(m => ({ value: m.nome, label: m.nome }));
+    }
+
+    sel.innerHTML = `<option value="">-- Selecione Médico --</option>` + options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+}
+
+function renderExamesUI() {
+    const container = document.getElementById('exames-container');
+    if (!container) return;
+
+    const examesDisponiveis = [
+        { id: 1, nome: 'Hemograma', preco: 45.00, descricao: 'Análise completa do sangue' },
+        { id: 2, nome: 'Glicemia', preco: 35.00, descricao: 'Medição de açúcar no sangue' },
+        { id: 3, nome: 'Colesterol Total', preco: 55.00, descricao: 'Perfil lipídico completo' },
+        { id: 4, nome: 'TSH', preco: 60.00, descricao: 'Teste da tireoide' },
+        { id: 5, nome: 'Raio-X Tórax', preco: 120.00, descricao: 'Radiografia de tórax' },
+        { id: 6, nome: 'Ultrassom Abdômen', preco: 180.00, descricao: 'Ultrassom abdominal completo' }
+    ];
+
+    container.innerHTML = `
+        <div class="card">
+            <h3>Exames Disponíveis</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                ${examesDisponiveis.map(ex => `
+                    <div class="med-card" style="padding: 15px;">
+                        <h4>${ex.nome}</h4>
+                        <p style="color: var(--text-sub); font-size: 0.9rem; margin: 10px 0;">${ex.descricao}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                            <span style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">R$ ${ex.preco.toFixed(2)}</span>
+                            <button class="btn btn-primary" data-exam-id="${ex.id}">Solicitar</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    document.querySelectorAll('[data-exam-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const exId = parseInt(btn.dataset.examId);
+            const exame = examesDisponiveis.find(e => e.id === exId);
+            notify(`Exame "${exame.nome}" solicitado com sucesso!`, 'sucesso');
+        });
+    });
+}
+
+function renderCalendarioUI() {
+    const container = document.getElementById('calendario-container');
+    if (!container) return;
+
+    const hoje = new Date();
+    const mes = hoje.getMonth();
+    const ano = hoje.getFullYear();
+
+    const primeiroDia = new Date(ano, mes, 1);
+    const ultimoDia = new Date(ano, mes + 1, 0);
+    const diasDoMes = ultimoDia.getDate();
+    const comecaEm = primeiroDia.getDay();
+
+    const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    let html = `
+        <div class="card">
+            <h3>Calendário de Disponibilidade - ${nomesMeses[mes]} ${ano}</h3>
+            <table style="width: 100%; text-align: center; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr>
+                        ${diasSemana.map(d => `<th style="padding: 10px; background: var(--primary); color: white;">${d}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${(() => {
+                        let html = '<tr>';
+                        for (let i = 0; i < comecaEm; i++) html += '<td></td>';
+                        
+                        for (let dia = 1; dia <= diasDoMes; dia++) {
+                            const dataObj = new Date(ano, mes, dia);
+                            const weekday = dataObj.getDay();
+                            const medicosDia = medicos.filter(m => m.dias.includes(weekday));
+                            const temMedicos = medicosDia.length > 0;
+
+                            html += `<td style="padding: 15px; border: 1px solid var(--border); ${temMedicos ? 'background: #f0f8ff;' : ''} cursor: ${temMedicos ? 'pointer' : 'default'};">
+                                <div style="font-weight: bold;">${dia}</div>
+                                ${temMedicos ? `<div style="font-size: 0.75rem; color: var(--primary); margin-top: 5px;">${medicosDia.length} médico(s)</div>` : ''}
+                            </td>`;
+
+                            if ((comecaEm + dia) % 7 === 0 && dia < diasDoMes) html += '</tr><tr>';
+                        }
+
+                        const faltam = 42 - (comecaEm + diasDoMes);
+                        for (let i = 0; i < faltam; i++) html += '<td></td>';
+                        html += '</tr>';
+                        return html;
+                    })()}
+                </tbody>
+            </table>
+            <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 15px;">
+                <i class="fas fa-info-circle"></i> Dias em azul claro têm médicos disponíveis para agendamento.
+            </p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// ==================== INICIALIZAÇÃO ====================
+
+document.addEventListener('DOMContentLoaded', () => {
+    buildDynamicMenu();
+    updateHeaderUser();
+    
+    document.getElementById('btn-logout').addEventListener('click', logout);
+    
+    showSection('home');
+});
 
 
 function carregarTabela() {

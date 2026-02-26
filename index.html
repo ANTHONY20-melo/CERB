@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clínica Vital - Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer crossorigin="anonymous"></script>
 </head>
@@ -42,8 +43,8 @@
             </div>
             <div class="header-right">
                 <div class="user-profile">
-                    <img src="https://i.pravatar.cc/150?u=admin" alt="Foto Admin">
-                    <span>Administrador</span>
+                        <img id="user-avatar" src="https://i.pravatar.cc/150?u=admin" alt="Foto do usuário">
+                        <span id="user-name">Administrador</span>
                 </div>
                 <button id="btn-logout" class="btn-logout" type="button" aria-label="Sair">
                     <i class="fas fa-sign-out-alt"></i> Sair

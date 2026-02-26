@@ -4,6 +4,36 @@ if (!usuarioLogado) {
     window.location.href = "login.html";
 }
 
+// --- FUNÇÕES DE CRIPTOGRAFIA (para redefinição de senha) ---
+// Gera um salt aleatório (16 bytes = 128 bits)
+function generateSalt() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// PBKDF2 com SHA-256: deriveKey(password, salt) retorna { salt, hash }
+async function deriveKey(password, salt = null) {
+    if (!salt) salt = generateSalt();
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+    const saltBuffer = new Uint8Array(salt.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: saltBuffer, iterations: 100000, hash: 'SHA-256' }, baseKey, 256);
+    const hashArray = Array.from(new Uint8Array(bits));
+    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return { salt, hash };
+}
+
+async function resetUserPassword(userId, newPassword) {
+    let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    const userIndex = usuarios.findIndex(u => String(u.id) === String(userId) || u.usuario === userId);
+
+    if (userIndex !== -1) {
+        const { salt, hash } = await deriveKey(newPassword);
+        usuarios[userIndex].salt = salt;
+        usuarios[userIndex].senha = hash;
+        localStorage.setItem('usuarios', JSON.stringify(usuarios));
+    } else { throw new Error("Usuário não encontrado para redefinir a senha."); }
+}
+
 // DADOS PERSISTENTES
 let totalReceitas = parseFloat(localStorage.getItem('totalReceitas')) || 0;
 let totalDespesas = parseFloat(localStorage.getItem('totalDespesas')) || 0;
@@ -1302,25 +1332,6 @@ function carregarTabela() {
         `;
     }
     corpo.innerHTML = html;
-    
-    // Adicionar event listeners aos selects e botões de ação
-    document.querySelectorAll('.status-select').forEach(sel => {
-        sel.addEventListener('change', () => {
-            const idx = parseInt(sel.dataset.index);
-            agendaSalva[idx].status = sel.value;
-            localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
-            notify(`Status alterado para ${sel.value}`);
-            carregarTabela();
-        });
-    });
-    
-    document.querySelectorAll('.btn-edit-agenda').forEach(btn => {
-        btn.addEventListener('click', () => prepararEdicao(parseInt(btn.dataset.index)));
-    });
-    
-    document.querySelectorAll('.btn-delete-agenda').forEach(btn => {
-        btn.addEventListener('click', () => apagarAgendamento(parseInt(btn.dataset.index)));
-    });
 }
 
 // --- FINANCEIRO ---
@@ -1451,11 +1462,37 @@ function renderAgendaUI() {
     `;
     container.innerHTML = html;
     
-    // Event listeners
-    document.getElementById('data')?.addEventListener('change', preencherMedicosPorData);
-    document.getElementById('btn-salvar-agenda')?.addEventListener('click', adicionarConsulta);
-    document.getElementById('btn-cancelar-agenda')?.addEventListener('click', cancelarEdicao);
-    
+    // Adiciona listeners ao container para usar delegação de eventos
+    container.addEventListener('click', (e) => {
+        // Botões do formulário
+        if (e.target.id === 'btn-salvar-agenda') return adicionarConsulta();
+        if (e.target.id === 'btn-cancelar-agenda') return cancelarEdicao();
+
+        // Botões da tabela (delegação)
+        const button = e.target.closest('button.btn-edit-agenda, button.btn-delete-agenda');
+        if (button && button.dataset.index) {
+            const index = parseInt(button.dataset.index, 10);
+            if (button.classList.contains('btn-edit-agenda')) {
+                prepararEdicao(index);
+            } else if (button.classList.contains('btn-delete-agenda')) {
+                apagarAgendamento(index);
+            }
+        }
+    });
+
+    container.addEventListener('change', (e) => {
+        // Input de data do formulário
+        if (e.target.id === 'data') return preencherMedicosPorData();
+
+        // Select de status da tabela (delegação)
+        if (e.target.classList.contains('status-select') && e.target.dataset.index) {
+            const idx = parseInt(e.target.dataset.index, 10);
+            agendaSalva[idx].status = e.target.value;
+            localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
+            notify(`Status alterado para ${e.target.value}`);
+            carregarTabela(); // Re-renderiza para atualizar a cor
+        }
+    });
     carregarTabela();
     preencherMedicosPorData();
 }
@@ -1574,7 +1611,7 @@ function renderUsuariosUI() {
     const html = `
         <div class="card">
             <h3><i class="fas fa-users-cog"></i> Gerenciamento de Usuários</h3>
-            <p style="color: var(--text-sub); margin-bottom: 20px;">Altere o avatar de qualquer usuário do sistema.</p>
+            <p style="color: var(--text-sub); margin-bottom: 20px;">Altere o avatar ou redefina a senha de qualquer usuário do sistema.</p>
             <div style="overflow-x: auto;">
                 <table style="width:100%; border-collapse: collapse; min-width: 600px;">
                     <thead>
@@ -1583,11 +1620,13 @@ function renderUsuariosUI() {
                             <th style="padding:12px;">Nome</th>
                             <th style="padding:12px;">Usuário</th>
                             <th style="padding:12px;">Perfil</th>
-                            <th style="padding:12px; text-align:center;">Ação</th>
+                            <th style="padding:12px; text-align:center;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${allUsers.map(user => `
+                        ${allUsers.map(user => {
+                            const isCurrentUser = String(user.id) === String(usuarioLogado.id) || user.usuario === usuarioLogado.usuario;
+                            return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding:8px;">
                                     <img src="${user.avatar || `https://i.pravatar.cc/150?u=${user.usuario}`}" alt="Avatar de ${user.nome}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
@@ -1597,9 +1636,10 @@ function renderUsuariosUI() {
                                 <td style="padding:8px;"><span class="badge-${user.perfil === 'admin' ? 'despesa' : 'info'}">${user.perfil}</span></td>
                                 <td style="padding:8px; text-align:center;">
                                     <button class="btn-edit-avatar" data-userid="${user.id || user.usuario}">Alterar Avatar</button>
+                                    ${!isCurrentUser ? `<button class="btn-reset-password" data-userid="${user.id || user.usuario}">Redefinir Senha</button>` : ''}
                                 </td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             </div>
@@ -1626,6 +1666,33 @@ function renderUsuariosUI() {
         if (file && targetUserId) {
             handleAdminAvatarChange(file, targetUserId);
         }
+    });
+
+    // Event listener para redefinir senha
+    container.querySelectorAll('.btn-reset-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const userId = btn.dataset.userid;
+            const user = allUsers.find(u => String(u.id) === String(userId) || u.usuario === userId);
+            if (!user) return;
+
+            const newPassword = prompt(`Digite a NOVA senha para o usuário '${user.nome}'.`);
+            if (!newPassword || newPassword.trim() === '') {
+                notify('Operação cancelada ou senha vazia.', 'info');
+                return;
+            }
+
+            const confirmPassword = prompt('Confirme a nova senha.');
+            if (newPassword !== confirmPassword) {
+                notify('As senhas não coincidem!', 'erro');
+                return;
+            }
+
+            resetUserPassword(userId, newPassword)
+                .then(() => {
+                    notify(`Senha do usuário '${user.nome}' foi redefinida com sucesso!`, 'sucesso');
+                })
+                .catch(err => { notify(`Erro ao redefinir senha: ${err.message}`, 'erro'); });
+        });
     });
 }
 

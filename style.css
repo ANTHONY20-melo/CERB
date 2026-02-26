@@ -418,6 +418,19 @@ button {
 }
 .btn-edit-avatar:hover { opacity: 0.9; }
 
+.btn-reset-password {
+    background: #f39c12; /* Cor de aviso */
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 5px;
+}
+.btn-reset-password:hover { opacity: 0.9; }
+
 /* Badges dentro das células do calendário */
 .cal-badge {
     display: inline-block;

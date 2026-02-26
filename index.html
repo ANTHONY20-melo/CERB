@@ -2,112 +2,56 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TI Inventory - CERB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clínica Vital - Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<button class="mobile-menu-btn" onclick="toggleSidebar()">
-    <i class="fas fa-bars"></i>
-</button>
-
-<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-<div class="sidebar" id="sidebar">
-    <div class="logo">
-        <i class="fas fa-laptop-medical"></i> 
-        <span>Inventário CERB</span>
-    </div>
-    <nav id="sidebar-nav">
-        <button class="nav-item active" id="btn-pcs" onclick="showTab('pcs')"><i class="fas fa-desktop"></i> Computadores</button>
-        <button class="nav-item" id="btn-printers" onclick="showTab('printers')"><i class="fas fa-print"></i> Impressoras</button>
-        
-        <div class="menu-label">NÚCLEOS</div>
-        <div id="nucleos-menu"></div>
-
-        <hr style="border: 0.5px solid #334155; margin: 20px 0;">
-        
-        <label for="fileInput" class="btn-import"><i class="fas fa-file-excel"></i> Importar Excel/CSV</label>
-        <input type="file" id="fileInput" accept=".csv, .xlsx, .xls" hidden>
-        
-        <button class="btn-danger" onclick="limparBase()"><i class="fas fa-trash"></i> Resetar Tudo</button>
-    </nav>
-</div>
-
-<div class="main-content">
-    <header>
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar no inventário...">
+    <aside class="sidebar">
+        <div class="logo">
+            <h2><i class="fas fa-heartbeat"></i> SBM</h2>
         </div>
-    </header>
-
-    <div id="dashboard-resumo" class="dashboard-grid"></div>
-
-    <div id="tab-pcs" class="tab-content">
-        <div class="table-container">
-            <table class="responsive-table">
-                <thead>
-                    <tr>
-                        <th>PC</th>
-                        <th>Usuário</th>
-                        <th>RAM</th>
-                        <th>Processador</th>
-                        <th>Nº Série</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="pcTableBody"></tbody>
-            </table>
+        <ul>
+            <li id="menu-home" class="active" onclick="showSection('home')">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </li>
+            <li id="menu-agenda" onclick="showSection('agenda')">
+                <i class="fas fa-calendar-alt"></i> Agenda
+            </li>
+            <li id="menu-financas" onclick="showSection('financas')">
+                <i class="fas fa-hand-holding-usd"></i> Financeiro
+            </li>
+        </ul>
+        <div style="margin-top: auto; padding: 10px; font-size: 0.8rem; color: #888;">
+            v2.0 Stable
         </div>
+    </aside>
+
+    <div class="main-container">
+        <header>
+            <div class="header-left">
+                <h3 id="page-title">Painel de Controle</h3>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <img src="https://i.pravatar.cc/150?u=admin" alt="Foto Admin">
+                    <span>Administrador</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <main class="content" id="main-display">
+            </main>
     </div>
 
-    <div id="tab-printers" class="tab-content" style="display:none;">
-        <div class="table-container">
-            <table class="responsive-table">
-                <thead>
-                    <tr>
-                        <th>Modelo</th>
-                        <th>Nº Série</th>
-                        <th>Localização</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="printerTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
+    <div id="notification-container"></div>
 
-<button id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-    <i class="fas fa-arrow-up"></i>
-</button>
-
-<div id="qrModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <div id="printableLabel" class="label-box">
-            <h2 id="l-title"></h2>
-            <div id="qrcode"></div>
-            <p id="l-serial"></p>
-        </div>
-        <div id="editModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeEditModal()">&times;</span>
-        <h3><i class="fas fa-edit"></i> Editar Registro</h3>
-        <hr style="margin: 15px 0; opacity: 0.2;">
-        <form id="formEdicao" class="edit-form">
-            </form>
-    </div>
-</div>
-        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
-    </div>
-</div>
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

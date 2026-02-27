@@ -65,6 +65,7 @@
     
     .header-right {
         gap: 10px;
+        display: flex; /* garantir que continue flex mesmo com header fixo */
     }
     
     .user-profile {
@@ -72,8 +73,15 @@
         gap: 8px;
     }
     
+    /* mostrar nome do usuário mesmo em telas pequenas; se preferir esconder,
+       basta ajustar conforme necessidade. */
     .user-profile span {
-        display: none;
+        display: inline-block;
+        font-size: 0.8rem;
+        max-width: 80px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .user-profile img {

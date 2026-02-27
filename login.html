@@ -24,7 +24,7 @@
         @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-8px); } }
     </style>
 </head>
-<body style="justify-content: center; align-items: center; background: var(--bg-body);">
+<body class="login-bg" style="justify-content: center; align-items: center;">
     <div class="auth-container">
         <div class="login-card" style="width: 100%; max-width: 400px;">
             <i class="fas fa-clinic-medical" style="font-size: 3rem; color: var(--primary); margin-bottom: 15px;"></i>
@@ -45,6 +45,16 @@
             </div>
 
             <div class="auth-form" id="form-registro">
+                <!-- avatar preview / upload -->
+                <div style="text-align:center; margin-bottom:15px;">
+                    <img id="reg-avatar-preview" src="https://i.pravatar.cc/80?u=new" alt="Avatar" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border);">
+                    <div style="margin-top:8px;">
+                        <button type="button" id="btn-reg-avatar" style="background:transparent;border:none;color:var(--primary);cursor:pointer;">
+                            <i class="fas fa-camera"></i> Escolher avatar
+                        </button>
+                        <input type="file" id="reg-avatar" accept="image/*" style="display:none;">
+                    </div>
+                </div>
                 <label for="reg-nome" class="sr-only">Nome Completo</label>
                 <input type="text" id="reg-nome" autocomplete="name" placeholder="Nome Completo" style="width:100%; margin-bottom:12px;">
                 <label for="reg-email" class="sr-only">Email</label>

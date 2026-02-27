@@ -21,6 +21,14 @@ body {
     overflow: hidden;
 }
 
+/* fundo com logo TIA utilizado na tela de login/registro */
+body.login-bg {
+    background-image: url('img/logo tia.jpeg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+}
+
 /* --- SIDEBAR --- */
 .sidebar {
     width: 260px;

@@ -1622,7 +1622,10 @@ function renderUsuariosUI() {
     const html = `
         <div class="card">
             <h3><i class="fas fa-users-cog"></i> Gerenciamento de Usuários</h3>
-            <p style="color: var(--text-sub); margin-bottom: 20px;">Altere o avatar ou redefina a senha de qualquer usuário do sistema.</p>
+            <p style="color: var(--text-sub); margin-bottom: 15px;">Altere o avatar ou redefina a senha de qualquer usuário do sistema.</p>
+            <div style="margin-bottom: 20px;">
+                <input type="search" id="user-search-input" placeholder="🔎 Buscar por nome ou usuário..." style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem;">
+            </div>
             <div style="overflow-x: auto;">
                 <table style="width:100%; border-collapse: collapse; min-width: 600px;">
                     <thead>
@@ -1634,24 +1637,7 @@ function renderUsuariosUI() {
                             <th style="padding:12px; text-align:center;">Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${allUsers.map(user => {
-                            const isCurrentUser = String(user.id) === String(usuarioLogado.id) || user.usuario === usuarioLogado.usuario;
-                            return `
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding:8px;">
-                                    <img src="${user.avatar || `https://i.pravatar.cc/150?u=${user.usuario}`}" alt="Avatar de ${user.nome}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                                </td>
-                                <td style="padding:8px;"><strong>${user.nome}</strong></td>
-                                <td style="padding:8px;">${user.usuario}</td>
-                                <td style="padding:8px;"><span class="badge-${user.perfil === 'admin' ? 'despesa' : 'info'}">${user.perfil}</span></td>
-                                <td style="padding:8px; text-align:center;">
-                                    <button class="btn-edit-avatar" data-userid="${user.id || user.usuario}">Alterar Avatar</button>
-                                    ${!isCurrentUser ? `<button class="btn-reset-password" data-userid="${user.id || user.usuario}">Redefinir Senha</button>` : ''}
-                                </td>
-                            </tr>
-                        `}).join('')}
-                    </tbody>
+                    <tbody id="tabela-usuarios-corpo"></tbody>
                 </table>
             </div>
             <!-- Input de arquivo oculto para ser acionado pelos botões -->

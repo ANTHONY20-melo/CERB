@@ -109,6 +109,12 @@ document.getElementById('btn-registro').addEventListener('click', async function
     const senha = document.getElementById('reg-pass').value;
     const senha2 = document.getElementById('reg-pass2').value;
 
+    // avatar em base64, preenchido pelo listener abaixo
+    // se nenhum arquivo for selecionado, permanece null e será ignorado
+    // variável definida no escopo de módulo (global para este arquivo)
+    // veja initRegistroAvatar() mais abaixo
+    
+
     if (!nome || !email || !usuario || !senha || !senha2) { showToast('Preencha todos os campos!', 'error'); return; }
     if (senha !== senha2) { showToast('As senhas não coincidem!', 'error'); return; }
 
@@ -117,14 +123,42 @@ document.getElementById('btn-registro').addEventListener('click', async function
 
     const { salt, hash } = await deriveKey(senha);
     const novoUsuario = { id: Date.now(), nome, email, usuario, salt, senha: hash, perfil: 'usuario', dataCriacao: new Date().toLocaleDateString() };
+    if (regAvatarData) novoUsuario.avatar = regAvatarData;
     usuarios.push(novoUsuario);
     localStorage.setItem('usuarios', JSON.stringify(usuarios));
 
     showToast('Conta criada com sucesso! Faça o login.', 'success');
     document.getElementById('form-registro').reset();
+    regAvatarData = null;
+    document.getElementById('reg-avatar-preview').src = 'https://i.pravatar.cc/80?u=new';
     document.getElementById('tab-login').click();
 });
 
 if (!JSON.parse(localStorage.getItem('usuarios'))) {
     localStorage.setItem('usuarios', JSON.stringify([{ id: 1, nome: 'Administrador', email: 'admin@clinica.com', usuario: 'admin', senha: '123', perfil: 'admin', dataCriacao: '01/01/2026' }]));
 }
+
+// controle de avatar na tela de registro
+let regAvatarData = null;
+function initRegistroAvatar() {
+    const btn = document.getElementById('btn-reg-avatar');
+    const input = document.getElementById('reg-avatar');
+    const preview = document.getElementById('reg-avatar-preview');
+
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            regAvatarData = reader.result;
+            preview.src = regAvatarData;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// inicializa os listeners quando a página carrega
+document.addEventListener('DOMContentLoaded', () => {
+    try { initRegistroAvatar(); } catch(e) { }
+});

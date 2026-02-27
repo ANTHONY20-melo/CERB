@@ -617,3 +617,37 @@ td[data-dia] { vertical-align: top; }
     border-color: var(--primary);
     color: var(--primary);
 }
+
+/* --- DASHBOARD HOME (admin) --- */
+.dashboard-grid {
+    margin: 20px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.dashboard-value {
+    margin-top: 10px;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+.dashboard-grid .card {
+    text-align: center;
+}
+
+/* icones de receitas/despesas coloridos */
+.dashboard-grid .card h3 .fa-arrow-circle-up { color: var(--success); }
+.dashboard-grid .card h3 .fa-arrow-circle-down { color: var(--danger); }
+
+/* estrutura flexível para múltiplos gráficos lado a lado */
+.chart-container-flex {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.chart-container-flex .chart-container {
+    flex: 1;
+    min-width: 200px;
+}

@@ -362,6 +362,36 @@
         font-size: 0.65rem;
         padding: 3px 6px;
     }
+
+    /* dashboard small tweaks */
+    .dashboard-value {
+        font-size: 1.5rem;
+    }
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .chart-container-flex {
+        flex-direction: column;
+    }
+    /* ajustar espaçamento e tamanho de fontes do dashboard em telas pequenas */
+    .dashboard-grid {
+        gap: 10px;
+    }
+    .dashboard-grid .card {
+        padding: 15px 10px;
+    }
+    .dashboard-grid .card h3 {
+        font-size: 0.95rem;
+    }
+    .dashboard-value {
+        font-size: 1.3rem;
+    }
+    .chart-container {
+        height: 200px !important;
+    }
+    .chart-container-flex .chart-container {
+        margin-bottom: 15px;
+    }
     
     .day-item {
         padding: 3px 5px;

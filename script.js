@@ -132,7 +132,8 @@ function buildDynamicMenu() {
     menu.innerHTML = '';
 
     const menuItems = [
-        { id: 'menu-home', label: 'MENU', icon: 'fa-bars', section: 'home' }
+        // título da primeira opção muda conforme perfil
+        { id: 'menu-home', label: usuarioLogado.perfil === 'admin' ? 'Dashboard' : 'MENU', icon: 'fa-bars', section: 'home' }
     ];
 
     if (usuarioLogado.perfil === 'admin') {
@@ -216,6 +217,11 @@ function renderSolicitacoesUI() {
 
     container.innerHTML = html;
 
+    // se for administrador, atualizar valores do dashboard após injeção do HTML
+    if (isAdmin) {
+        atualizarDashboardHome();
+    }
+
     // Event listeners: alterar status
     container.querySelectorAll('.sol-status').forEach(sel => {
         sel.addEventListener('change', () => {
@@ -279,6 +285,7 @@ function renderSolicitacoesUI() {
         renderSolicitacoesUI();
         try { renderAgendaUI(); } catch (e) { console.error('Erro ao renderizar agenda:', e); }
         try { renderCalendarioUI(); } catch (e) { console.error('Erro ao renderizar calendário:', e); }
+        if (usuarioLogado && usuarioLogado.perfil === 'admin') atualizarDashboardHome();
     }));
 
     container.querySelectorAll('.btn-view').forEach(btn => btn.addEventListener('click', () => {
@@ -337,8 +344,16 @@ function handleAvatarFile(file) {
 
 // Atualiza título da página (header) de acordo com seção
 function updatePageTitle(section) {
-    const titleMap = { home: 'MENU', agenda: 'Agenda', medicos: 'Médicos', financas: 'Financeiro', marcacao: 'Marcação', exames: 'Exames', calendario: 'Calendário' };
-    document.getElementById('page-title').textContent = titleMap[section] || '';
+    // para administradores, o 'home' é apresentado como Dashboard
+    const homeLabel = (usuarioLogado && usuarioLogado.perfil === 'admin') ? 'Dashboard' : 'MENU';
+        let title = '';
+        if (section === 'home' && usuarioLogado && usuarioLogado.perfil === 'admin') {
+            title = 'Dashboard';
+        } else {
+            const titleMap = { home: homeLabel, agenda: 'Agenda', medicos: 'Médicos', financas: 'Financeiro', marcacao: 'Marcação', exames: 'Exames', calendario: 'Calendário' };
+            title = titleMap[section] || '';
+        }
+        document.getElementById('page-title').textContent = title;
 }
 
 // Renderiza menu com logo de fundo transparente, carrossel de saúde e informações de atendimento
@@ -351,7 +366,55 @@ function renderMenuUI() {
     container.style.backgroundImage = 'none';
     container.style.backgroundColor = '#f8f9fa';
 
-    const html = `
+    // se for admin, exibimos um painel de controle em vez do conteúdo informativo
+    const isAdmin = usuarioLogado && usuarioLogado.perfil === 'admin';
+    let html = '';
+    if (isAdmin) {
+        html = `
+        <div class="dashboard-grid" style="gap:20px; display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr));">
+            <div class="card">
+                <h3><i class="fas fa-notes-medical"></i> Consultas</h3>
+                <div id="dash-consultas" class="dashboard-value">0</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-users"></i> Pacientes</h3>
+                <div id="dash-pacientes" class="dashboard-value">0</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-user-md"></i> Médicos</h3>
+                <div id="dash-medicos" class="dashboard-value">0</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-clock"></i> Horas</h3>
+                <div id="dash-horas" class="dashboard-value">0</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-arrow-circle-up"></i> Receitas</h3>
+                <div id="dash-receitas" class="dashboard-value">R$ 0,00</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-arrow-circle-down"></i> Despesas</h3>
+                <div id="dash-despesas" class="dashboard-value">R$ 0,00</div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-wallet"></i> Saldo</h3>
+                <div id="dash-saldo" class="dashboard-value">R$ 0,00</div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+            <h3><i class="fas fa-chart-bar"></i> Agendamentos por Médico</h3>
+            <div class="chart-container-flex" style="display:flex; gap:20px; flex-wrap:wrap;">
+                <div class="chart-container" style="flex:1; min-width:200px; height:250px;">
+                    <canvas id="dash-medicos-chart"></canvas>
+                </div>
+                <div class="chart-container" style="flex:1; min-width:200px; height:250px;">
+                    <canvas id="dash-status-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        `;
+    } else {
+        html = `
         <!-- Hero com sobreposição -->
         <div style="background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6)); min-height: 300px; display: flex; align-items: center; justify-content: center; color: white; text-align: center;">
             <div>
@@ -465,33 +528,39 @@ function renderMenuUI() {
             <p><i class="fas fa-phone" style="margin-right: 8px;"></i>Ligue: (11) 3333-3333</p>
         </div>
     `;
+    }
 
     container.innerHTML = html;
 
-    // Lógica do carrossel
-    const carouselContainer = container.querySelector('.carousel-container');
-    let currentSlide = 0;
-    const totalSlides = container.querySelectorAll('.carousel-item').length;
+    // Lógica do carrossel (somente para usuários comuns)
+    if (!isAdmin) {
+        const carouselContainer = container.querySelector('.carousel-container');
+        if (carouselContainer) {
+            let currentSlide = 0;
+            const totalSlides = container.querySelectorAll('.carousel-item').length;
 
-    function updateCarousel() {
-        carouselContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+            function updateCarousel() {
+                carouselContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+            }
+
+            const prevBtn = container.querySelector('.carousel-btn.prev');
+            const nextBtn = container.querySelector('.carousel-btn.next');
+            if (prevBtn) prevBtn.addEventListener('click', () => {
+                currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+                updateCarousel();
+            });
+            if (nextBtn) nextBtn.addEventListener('click', () => {
+                currentSlide = (currentSlide + 1) % totalSlides;
+                updateCarousel();
+            });
+
+            // Auto-play do carrossel
+            setInterval(() => {
+                currentSlide = (currentSlide + 1) % totalSlides;
+                updateCarousel();
+            }, 5000);
+        }
     }
-
-    container.querySelector('.carousel-btn.prev').addEventListener('click', () => {
-        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
-        updateCarousel();
-    });
-
-    container.querySelector('.carousel-btn.next').addEventListener('click', () => {
-        currentSlide = (currentSlide + 1) % totalSlides;
-        updateCarousel();
-    });
-
-    // Auto-play do carrossel
-    setInterval(() => {
-        currentSlide = (currentSlide + 1) % totalSlides;
-        updateCarousel();
-    }, 5000);
 }
 function showSection(section) {
     const display = document.getElementById('main-display');
@@ -551,13 +620,62 @@ function showSection(section) {
 // --- DASHBOARD ---
 function atualizarDashboardHome() {
     const saldo = totalReceitas - totalDespesas;
-    const dashPacientes = document.getElementById('dash-pacientes');
+    const dashConsultas = document.getElementById('dash-consultas');
+    const dashMedicos = document.getElementById('dash-medicos');
     const dashSaldo = document.getElementById('dash-saldo');
+    const dashPacientes = document.getElementById('dash-pacientes');
+    const dashHoras = document.getElementById('dash-horas');
+    const dashReceitas = document.getElementById('dash-receitas');
+    const dashDespesas = document.getElementById('dash-despesas');
     
-    if(dashPacientes) dashPacientes.innerText = agendaSalva.length;
-    if(dashSaldo) {
+    if (dashConsultas) dashConsultas.innerText = agendaSalva.length;
+    if (dashPacientes) dashPacientes.innerText = new Set(agendaSalva.map(a => a.nome)).size;
+    if (dashMedicos) dashMedicos.innerText = medicos.length;
+    if (dashHoras) dashHoras.innerText = agendaSalva.length; // assume 1 hora por consulta
+    if (dashReceitas) dashReceitas.innerText = `R$ ${totalReceitas.toFixed(2)}`;
+    if (dashDespesas) dashDespesas.innerText = `R$ ${totalDespesas.toFixed(2)}`;
+    if (dashSaldo) {
         dashSaldo.innerText = `R$ ${saldo.toFixed(2)}`;
         dashSaldo.style.color = saldo < 0 ? 'var(--danger)' : 'var(--success)';
+    }
+
+    // gráfico também precisa ser atualizado
+    renderDashboardChart();
+}
+
+let dashboardBarChart = null;
+let dashboardStatusChart = null;
+
+function renderDashboardChart() {
+    // bar chart por médico
+    const ctxBar = document.getElementById('dash-medicos-chart')?.getContext('2d');
+    if (ctxBar) {
+        const names = medicos.map(m => m.nome);
+        const counts = names.map(n => agendaSalva.filter(a => a.medico === n).length);
+        if (dashboardBarChart) dashboardBarChart.destroy();
+        dashboardBarChart = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: names,
+                datasets: [{ label: 'Agendamentos', data: counts, backgroundColor: '#3498db' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, precision: 0 } } }
+        });
+    }
+
+    // pie chart status
+    const ctxStatus = document.getElementById('dash-status-chart')?.getContext('2d');
+    if (ctxStatus) {
+        const statusCounts = {};
+        agendaSalva.forEach(a => { statusCounts[a.status] = (statusCounts[a.status] || 0) + 1; });
+        const labels = Object.keys(statusCounts);
+        const dataVals = labels.map(l => statusCounts[l]);
+        if (dashboardStatusChart) dashboardStatusChart.destroy();
+        dashboardStatusChart = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: dataVals, backgroundColor: ['#f39c12','#27ae60','#3498db','#e74c3c'] }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '60%' }
+        });
     }
 }
 
@@ -591,6 +709,7 @@ function adicionarConsulta() {
     
     localStorage.setItem('agendaSalva', JSON.stringify(agendaSalva));
     renderAgendaUI();
+    if (usuarioLogado && usuarioLogado.perfil === 'admin') atualizarDashboardHome();
 }
 
 // Preenche select de médicos baseado na data. Se data vazia, mostra todos.
@@ -1393,6 +1512,7 @@ function atualizarFinancas() {
 
     notify("Movimentação registrada!");
     renderFinancasUI();
+    if (usuarioLogado && usuarioLogado.perfil === 'admin') atualizarDashboardHome();
 }
 
 function renderHistoricoTabela() {
@@ -1418,6 +1538,7 @@ function limparHistorico() {
         sessionStorage.removeItem('isAdmin');
         notify("Sistema resetado!");
         renderFinancasUI();
+        if (usuarioLogado && usuarioLogado.perfil === 'admin') atualizarDashboardHome();
     }
 }
 
@@ -1748,6 +1869,7 @@ function salvarMedico() {
     
     localStorage.setItem('medicos', JSON.stringify(medicos));
     renderMedicosUI();
+    if (usuarioLogado && usuarioLogado.perfil === 'admin') atualizarDashboardHome();
 }
 
 function renderMedicosTabela() {
@@ -1789,6 +1911,7 @@ function renderMedicosTabela() {
                 localStorage.setItem('medicos', JSON.stringify(medicos));
                 notify('Médico removido', 'erro');
                 renderMedicosTabela();
+                    if (usuarioLogado && usuarioLogado.perfil === 'admin') atualizarDashboardHome();
             }
         });
     });

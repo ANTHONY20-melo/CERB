@@ -21,12 +21,29 @@ body {
     overflow: hidden;
 }
 
-/* fundo com logo TIA utilizado na tela de login/registro */
-body.login-bg {
+/* fundo com logo TIA utilizado na tela de login/registro e menu principal */
+body.login-bg,
+body.menu-bg {
     background-image: url('img/logo tia.jpeg');
     background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center center;
+    background-size: contain;
+    /* deslocar um pouco para a esquerda mantendo no eixo vertical central */
+    background-position: 80% center;
+    background-attachment: scroll;
+    background-color: #f4f7f9;
+    position: relative;
+}
+
+body.login-bg::before,
+body.menu-bg::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    inset: 0;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* --- SIDEBAR --- */

@@ -13,7 +13,13 @@
         flex-direction: row;
         align-items: center;
         overflow-x: auto;
-        border-bottom: 1px solid #34495e;
+        /* sidebar acting as bottom navigation on mobile */
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        border-top: 1px solid #34495e;
     }
     
     .logo { 
@@ -36,15 +42,15 @@
     }
     
     .sidebar ul li {
-        padding: 12px 15px;
+        padding: 14px 18px;
         gap: 8px;
-        font-size: 0.85rem;
+        font-size: 1rem; /* manter tamanho legível, similar ao desktop */
         white-space: nowrap;
         flex-shrink: 0;
     }
     
     .sidebar ul li i {
-        font-size: 1rem;
+        font-size: 1.2rem;
     }
     
     header {
@@ -52,11 +58,9 @@
         padding: 0 15px;
         gap: 10px;
         /* on mobile, move header bar to bottom of viewport */
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 20;
+        /* header permanece no topo; a navegação principal agora é a sidebar fixa em baixo */
+        position: relative;
+        z-index: 10;
     }
     
     #page-title {
@@ -101,8 +105,8 @@
     
     .main-container {
         /* keep space for fixed header at bottom */
-        padding-bottom: 60px;
-        height: 100vh; /* full height, header overlaps via padding */
+        padding-bottom: 60px; /* manter espaço inferior para a sidebar fixa */
+        height: 100vh; /* full height */
     }
     
     .card {

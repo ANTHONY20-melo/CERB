@@ -51,6 +51,12 @@
         height: 60px;
         padding: 0 15px;
         gap: 10px;
+        /* on mobile, move header bar to bottom of viewport */
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
     }
     
     #page-title {
@@ -86,7 +92,9 @@
     }
     
     .main-container {
-        height: calc(100vh - 60px);
+        /* keep space for fixed header at bottom */
+        padding-bottom: 60px;
+        height: 100vh; /* full height, header overlaps via padding */
     }
     
     .card {

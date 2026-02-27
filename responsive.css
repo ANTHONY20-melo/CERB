@@ -14,12 +14,6 @@
         align-items: center;
         overflow-x: auto;
         border-bottom: 1px solid #34495e;
-        /* fix sidebar at bottom on mobile so it's always reachable like a footer */
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 25;
     }
     
     .logo { 
@@ -99,8 +93,7 @@
     
     .main-container {
         /* keep space for fixed header at bottom */
-            /* espaço reservado para header e sidebar fixos na parte inferior */
-            padding-bottom: 120px; /* 60px header + 60px sidebar approx */
+        padding-bottom: 60px;
         height: 100vh; /* full height, header overlaps via padding */
     }
     

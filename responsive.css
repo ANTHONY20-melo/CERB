@@ -409,8 +409,95 @@
         font-size: 0.9rem;
     }
     
+    
     .user-profile img {
         width: 30px;
         height: 30px;
+    }
+
+    /* Dashboard Drawer Mobile */
+    .dashboard-drawer {
+        position: fixed;
+        top: 0;
+        right: -320px;
+        width: 320px;
+        height: 100vh;
+        background: #1e272e;
+        z-index: 1000;
+        transition: right 0.3s ease;
+        overflow-y: auto;
+        box-shadow: -4px 0 12px rgba(0,0,0,0.3);
+    }
+
+    .dashboard-drawer.active {
+        right: 0;
+    }
+
+    .dashboard-drawer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        display: none;
+    }
+
+    .dashboard-drawer-overlay.active {
+        display: block;
+    }
+
+    .dashboard-drawer-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #f4f7f9;
+    }
+
+    .dashboard-drawer-header {
+        background: #1e272e;
+        color: white;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #34495e;
+    }
+
+    .dashboard-drawer-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+    }
+
+    #dashboard-drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+
+    #dashboard-drawer-body .card {
+        margin-bottom: 12px;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    #dashboard-drawer-body .card h3 {
+        font-size: 0.9rem;
+        margin: 0 0 8px 0;
+        color: #2d3436;
+    }
+
+    #dashboard-drawer-body .dashboard-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #1e272e;
+    }
+
+    /* Mostrar botão dashboard no header em mobile */
+    @media (max-width: 768px) {
+        #btn-toggle-dashboard {
+            display: block !important;
+        }
     }
 }

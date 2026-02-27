@@ -39,6 +39,9 @@
     <div class="main-container">
         <header>
             <div class="header-left">
+                <button id="btn-toggle-dashboard" style="display:none; background:transparent; border:none; color:white; font-size:1.3rem; cursor:pointer; margin-right:12px; padding:8px;">
+                    <i class="fas fa-chart-line"></i>
+                </button>
                 <h3 id="page-title">MENU</h3>
             </div>
             <div class="header-right">
@@ -61,6 +64,19 @@
     </div>
 
     <div id="notification-container"></div>
+
+    <!-- Dashboard Drawer (mobile) -->
+    <div id="dashboard-drawer" class="dashboard-drawer">
+        <div class="dashboard-drawer-content">
+            <div class="dashboard-drawer-header">
+                <h2>Dashboard</h2>
+                <button id="btn-close-dashboard" style="background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="dashboard-drawer-body"></div>
+        </div>
+    </div>
     
     <script src="script.js" defer></script>
 </body>

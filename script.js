@@ -304,6 +304,74 @@ function updateHeaderUser() {
     else avatarEl.src = `https://i.pravatar.cc/150?u=${usuarioLogado.usuario}`;
 }
 
+// Renderiza conteúdo do dashboard drawer (mobile)
+function renderDashboardDrawer() {
+    const isAdmin = usuarioLogado && usuarioLogado.perfil === 'admin';
+    if (!isAdmin) return;
+
+    const drawerBody = document.getElementById('dashboard-drawer-body');
+    if (!drawerBody) return;
+
+    const saldo = totalReceitas - totalDespesas;
+    const uniqPacientes = new Set(agendaSalva.map(a => a.nome)).size;
+
+    const html = `
+        <div class="card">
+            <h3><i class="fas fa-notes-medical"></i> Consultas</h3>
+            <div class="dashboard-value">${agendaSalva.length}</div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-users"></i> Pacientes</h3>
+            <div class="dashboard-value">${uniqPacientes}</div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-user-md"></i> Médicos</h3>
+            <div class="dashboard-value">${medicos.length}</div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-arrow-circle-up"></i> Receitas</h3>
+            <div class="dashboard-value" style="color: var(--success);">R$ ${totalReceitas.toFixed(2)}</div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-arrow-circle-down"></i> Despesas</h3>
+            <div class="dashboard-value" style="color: var(--danger);">R$ ${totalDespesas.toFixed(2)}</div>
+        </div>
+        <div class="card">
+            <h3><i class="fas fa-wallet"></i> Saldo</h3>
+            <div class="dashboard-value" style="color: ${saldo < 0 ? 'var(--danger)' : 'var(--success)'};">R$ ${saldo.toFixed(2)}</div>
+        </div>
+    `;
+
+    drawerBody.innerHTML = html;
+}
+
+// Inicializa drawer do dashboard
+function initDashboardDrawer() {
+    const btn = document.getElementById('btn-toggle-dashboard');
+    const drawer = document.getElementById('dashboard-drawer');
+    const closeBtn = document.getElementById('btn-close-dashboard');
+
+    if (!btn || !drawer) return;
+
+    btn.addEventListener('click', () => {
+        drawer.classList.add('active');
+        renderDashboardDrawer();
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            drawer.classList.remove('active');
+        });
+    }
+
+    // Fechar ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (drawer.classList.contains('active') && !drawer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+            drawer.classList.remove('active');
+        }
+    });
+}
+
 // Inicializa troca de avatar no header
 function initAvatarUpload() {
     const btn = document.getElementById('btn-change-avatar');
@@ -641,8 +709,9 @@ function atualizarDashboardHome() {
 
     // gráfico também precisa ser atualizado
     renderDashboardChart();
-}
-
+    // Se drawer estiver aberto, atualizar também
+    renderDashboardDrawer();
+ }
 let dashboardBarChart = null;
 let dashboardStatusChart = null;
 
@@ -1346,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildDynamicMenu();
     updateHeaderUser();
     initAvatarUpload();
+    initDashboardDrawer();
     
     document.getElementById('btn-logout').addEventListener('click', logout);
     

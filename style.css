@@ -258,6 +258,13 @@ button {
 }
 
 /* Tabela Financeira */
+.finance-table-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
+    margin-top: 12px;
+}
+
 .finance-table {
     width: 100%;
     border-collapse: collapse;
@@ -269,6 +276,9 @@ button {
     color: var(--text-sub);
     font-size: 0.85rem;
     text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .finance-table td {

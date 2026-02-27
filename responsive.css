@@ -334,6 +334,34 @@
         min-width: 65px;
         white-space: nowrap;
     }
+
+    /* Financeiro mobile improvements */
+    .finance-header-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .finance-table-wrapper {
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    .finance-table td {
+        padding: 10px 8px;
+        font-size: 0.85rem;
+    }
+
+    .finance-table th {
+        padding: 8px 6px;
+        font-size: 0.7rem;
+    }
+
+    .badge-receita,
+    .badge-despesa {
+        font-size: 0.65rem;
+        padding: 3px 6px;
+    }
     
     .day-item {
         padding: 3px 5px;

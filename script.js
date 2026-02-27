@@ -1543,9 +1543,9 @@ function renderFinancasUI() {
                 </div>
             </div>
         </div>
-        <div class="card" style="margin-top: 20px;">
+        <div class="card finance-history-card" style="margin-top: 20px;">
             <h3><i class="fas fa-history"></i> Histórico de Transações</h3>
-            <div style="overflow-x: auto;">
+            <div class="finance-table-wrapper">
                 <table class="finance-table">
                     <thead>
                         <tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th></tr>

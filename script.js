@@ -198,10 +198,12 @@ function renderSolicitacoesUI() {
                                         <option value="Cancelado" ${s.status==='Cancelado'?'selected':''}>Cancelado</option>
                                     </select>
                                 </td>
-                                <td style="text-align:center;">
-                                    <button class="btn-view" data-id="${s.id}">Ver</button>
-                                    ${usuarioLogado.perfil === 'admin' && s.status !== 'Confirmado' ? `<button class="btn-convert-sol" data-id="${s.id}">Converter</button>` : ''}
-                                    <button class="btn-delete-sol" data-id="${s.id}">Excluir</button>
+                                <td class="acoes-cell">
+                                    <div class="acoes-buttons">
+                                        <button class="btn-view btn-action" data-id="${s.id}">Ver</button>
+                                        ${usuarioLogado.perfil === 'admin' && s.status !== 'Confirmado' ? `<button class="btn-convert-sol btn-action" data-id="${s.id}">Converter</button>` : ''}
+                                        <button class="btn-delete-sol btn-action" data-id="${s.id}">Excluir</button>
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
@@ -896,6 +898,10 @@ function openMarcacaoModal() {
         notify('Consulta agendada com sucesso!', 'sucesso');
         modal.remove();
         renderMarcacaoUI();
+        // Atualizar calendário para mostrar a nova marcação
+        try { renderCalendarioUI(); } catch (e) { console.error('Erro ao atualizar calendário:', e); }
+        // Atualizar solicitações do admin se estiver visualizando
+        try { renderSolicitacoesUI(); } catch (e) { console.error('Erro ao atualizar solicitações:', e); }
     });
 }
 
@@ -1303,6 +1309,69 @@ function carregarTabela() {
     corpo.innerHTML = html;
 }
 
+// Filtra a tabela de agenda baseado na pesquisa
+function filtrarAgenda() {
+    const inputPesquisa = document.querySelector('#agenda-pesquisa');
+    if (!inputPesquisa) return;
+
+    const termoBusca = inputPesquisa.value.toLowerCase().trim();
+    const corpo = document.getElementById('tabela-agenda-corpo');
+    if (!corpo) return;
+
+    // Se o campo estiver vazio, mostra todas as linhas
+    if (termoBusca === '') {
+        carregarTabela();
+        return;
+    }
+
+    // Filtra os agendamentos
+    const filtrados = agendaSalva.filter(item => {
+        const nome = (item.nome || '').toLowerCase();
+        const medico = (item.medico || '').toLowerCase();
+        const data = (item.data || '').toLowerCase();
+        
+        return nome.includes(termoBusca) || medico.includes(termoBusca) || data.includes(termoBusca);
+    });
+
+    // Renderiza apenas os filtrados
+    if (filtrados.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#888;">Nenhum resultado encontrado.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    for (let i = 0; i < filtrados.length; i++) {
+        const item = filtrados[i];
+        const index = agendaSalva.indexOf(item);
+        let statusColor = "#f39c12"; // Pendente
+        if(item.status === 'Concluído') statusColor = "#27ae60"; 
+        if(item.status === 'Cancelado') statusColor = "#e74c3c"; 
+
+        html += `
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding:12px; font-size: 0.85rem;">${item.data}</td>
+            <td style="padding:12px;"><strong>${item.nome}</strong></td>
+            <td style="padding:12px; font-size: 0.85rem; color:#666;">${item.medico}</td>
+            <td style="padding:12px;">
+                <select class="status-select" data-index="${index}" style="
+                    padding: 4px 8px; border-radius: 4px; border: 1px solid ${statusColor};
+                    color: ${statusColor}; font-weight: bold; background: white; cursor: pointer;
+                ">
+                    <option value="Pendente" ${item.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                    <option value="Concluído" ${item.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
+                    <option value="Cancelado" ${item.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                </select>
+            </td>
+            <td style="padding:12px; text-align:center;">
+                <button class="btn-edit-agenda" data-index="${index}" style="padding:5px 10px; background:#f39c12; border:none; color:white; border-radius:4px; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                <button class="btn-delete-agenda" data-index="${index}" style="padding:5px 10px; background:#e74c3c; border:none; color:white; border-radius:4px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>
+        `;
+    }
+    corpo.innerHTML = html;
+}
+
 // --- FINANCEIRO ---
 function atualizarFinancas() {
     const v = parseFloat(document.getElementById('fin-valor').value);
@@ -1388,27 +1457,9 @@ function renderAgendaUI() {
     
     const html = `
         <div class="card agenda-card">
-            <h3 id="agenda-titulo"><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
-            <div class="agenda-form">
-                <div class="form-group">
-                    <label for="paciente">Nome do Paciente</label>
-                    <input type="text" id="paciente" placeholder="Ex: João Silva">
-                </div>
-                
-                <div class="form-group">
-                    <label for="data">Data e Hora</label>
-                    <input type="datetime-local" id="data">
-                </div>
-                
-                <div class="form-group">
-                    <label for="medico-select">Médico Responsável</label>
-                    <select id="medico-select"><option value="">-- Selecione Médico --</option></select>
-                </div>
-                
-                <div class="form-actions">
-                    <button id="btn-salvar-agenda" class="btn-primary">Salvar Agendamento</button>
-                    <button id="btn-cancelar-agenda" class="btn-outline" style="display:none;">Cancelar</button>
-                </div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <i class="fas fa-search" style="font-size: 1.2rem; color: var(--primary);"></i>
+                <input type="text" id="agenda-pesquisa" placeholder="Pesquisar por paciente, médico ou data..." style="flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;">
             </div>
         </div>
         <div class="card" style="margin-top:20px;">
@@ -1431,12 +1482,8 @@ function renderAgendaUI() {
     `;
     container.innerHTML = html;
     
-    // Adiciona listeners ao container para usar delegação de eventos
+    // Listeners para a tabela (delegação)
     container.addEventListener('click', (e) => {
-        // Botões do formulário
-        if (e.target.id === 'btn-salvar-agenda') return adicionarConsulta();
-        if (e.target.id === 'btn-cancelar-agenda') return cancelarEdicao();
-
         // Botões da tabela (delegação)
         const button = e.target.closest('button.btn-edit-agenda, button.btn-delete-agenda');
         if (button && button.dataset.index) {
@@ -1450,9 +1497,6 @@ function renderAgendaUI() {
     });
 
     container.addEventListener('change', (e) => {
-        // Input de data do formulário
-        if (e.target.id === 'data') return preencherMedicosPorData();
-
         // Select de status da tabela (delegação)
         if (e.target.classList.contains('status-select') && e.target.dataset.index) {
             const idx = parseInt(e.target.dataset.index, 10);
@@ -1462,8 +1506,14 @@ function renderAgendaUI() {
             carregarTabela(); // Re-renderiza para atualizar a cor
         }
     });
+
+    // Listener para pesquisa
+    const inputPesquisa = container.querySelector('#agenda-pesquisa');
+    if (inputPesquisa) {
+        inputPesquisa.addEventListener('input', () => filtrarAgenda());
+    }
+
     carregarTabela();
-    preencherMedicosPorData();
 }
 
 // ========== RENDERIZAÇÃO DE FINANÇAS ==========

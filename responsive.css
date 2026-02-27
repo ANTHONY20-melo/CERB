@@ -319,6 +319,21 @@
     table td {
         padding: 6px;
     }
+
+    /* Responsive AÇÕES column for Solicitações */
+    .acoes-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .btn-action {
+        font-size: 0.75rem;
+        padding: 6px 10px;
+        min-width: 65px;
+        white-space: nowrap;
+    }
     
     .day-item {
         padding: 3px 5px;

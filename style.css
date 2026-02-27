@@ -158,6 +158,33 @@ button {
     font-weight: 600;
 }
 
+/* Botões de ação em tabelas */
+.acoes-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-action {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    min-width: auto;
+}
+
+.btn-view {
+    background: var(--primary);
+}
+
+.btn-convert-sol {
+    background: var(--success);
+}
+
+.btn-delete-sol {
+    background: var(--danger);
+}
+
 /* --- GRID E CARDS --- */
 .stats-grid {
     display: grid;
